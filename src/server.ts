@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import { configPlugin } from "@config";
 import { databasePlugin } from "@services/database";
+import { jwtPlugin } from "@services/auth";
+import { routerPlugin } from "@routes";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
@@ -19,11 +21,18 @@ const fastify = Fastify({
     : true, // Structured JSON output for production
 });
 
-// Register config plugin first (all other plugins depend on it)
+// Register plugins in dependency order
+// 1. Config plugin (all other plugins depend on it)
 fastify.register(configPlugin);
 
-// Register database plugin (depends on config plugin)
+// 2. Database plugin (depends on config)
 fastify.register(databasePlugin);
+
+// 3. JWT plugin (depends on config, provides auth infrastructure)
+fastify.register(jwtPlugin);
+
+// 4. Router plugin (depends on jwt and database, registers all routes)
+fastify.register(routerPlugin);
 
 const start = async () => {
   try {
