@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { configPlugin } from "@config";
 import { databasePlugin } from "@services/database";
 import { jwtPlugin } from "@services/auth";
+import { swaggerPlugin } from "@services/docs";
 import { routerPlugin } from "@routes";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -31,7 +32,10 @@ fastify.register(databasePlugin);
 // 3. JWT plugin (depends on config, provides auth infrastructure)
 fastify.register(jwtPlugin);
 
-// 4. Router plugin (depends on jwt and database, registers all routes)
+// 4. Swagger plugin (depends on config, provides API documentation)
+fastify.register(swaggerPlugin);
+
+// 5. Router plugin (depends on jwt and database, registers all routes)
 fastify.register(routerPlugin);
 
 const start = async () => {

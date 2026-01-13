@@ -125,10 +125,14 @@ export const responseSchemas = {
 
 /**
  * Pre-built route schemas for common endpoints
+ * Includes OpenAPI metadata (tags, summary, description) for documentation
  */
 export const routeSchemas = {
   // POST /chats
   createChat: {
+    tags: ["Chats"],
+    summary: "Create a new chat",
+    description: "Creates a new chat conversation with the specified title and model",
     body: bodySchemas.createChat,
     response: {
       201: responseSchemas.chat,
@@ -139,6 +143,9 @@ export const routeSchemas = {
 
   // GET /chats
   listChats: {
+    tags: ["Chats"],
+    summary: "List all chats",
+    description: "Returns a paginated list of chats for the authenticated user",
     querystring: querySchemas.chatList,
     response: {
       200: {
@@ -154,6 +161,9 @@ export const routeSchemas = {
 
   // GET /chats/:chatId
   getChat: {
+    tags: ["Chats"],
+    summary: "Get a chat",
+    description: "Returns a specific chat by ID",
     params: paramSchemas.chatId,
     response: {
       200: responseSchemas.chat,
@@ -164,6 +174,9 @@ export const routeSchemas = {
 
   // PATCH /chats/:chatId
   updateChat: {
+    tags: ["Chats"],
+    summary: "Update a chat",
+    description: "Updates a chat's title or archived status",
     params: paramSchemas.chatId,
     body: bodySchemas.updateChat,
     response: {
@@ -176,6 +189,9 @@ export const routeSchemas = {
 
   // DELETE /chats/:chatId
   deleteChat: {
+    tags: ["Chats"],
+    summary: "Delete a chat",
+    description: "Permanently deletes a chat and all its messages",
     params: paramSchemas.chatId,
     response: {
       204: { type: "null" },
@@ -186,6 +202,9 @@ export const routeSchemas = {
 
   // POST /chats/:chatId/completions
   createCompletion: {
+    tags: ["Completions"],
+    summary: "Create a completion",
+    description: "Sends a message to the LLM and returns the assistant's response. Supports streaming.",
     params: paramSchemas.chatId,
     body: bodySchemas.completionMessage,
     response: {
@@ -198,6 +217,9 @@ export const routeSchemas = {
 
   // GET /chats/:chatId/messages
   listMessages: {
+    tags: ["Chats"],
+    summary: "List chat messages",
+    description: "Returns a paginated list of messages in a chat",
     params: paramSchemas.chatId,
     querystring: querySchemas.pagination,
     response: {
