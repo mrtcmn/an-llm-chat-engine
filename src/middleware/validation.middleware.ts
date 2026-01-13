@@ -5,9 +5,6 @@ import type { FastifySchema } from "fastify";
  * These are used with Fastify's built-in schema validation (JSON Schema)
  */
 
-// UUID format regex pattern
-const UUID_PATTERN = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
-
 /**
  * Parameter schemas
  */
@@ -16,22 +13,7 @@ export const paramSchemas = {
     type: "object" as const,
     required: ["chatId"],
     properties: {
-      chatId: { type: "string", pattern: UUID_PATTERN },
-    },
-  },
-  messageId: {
-    type: "object" as const,
-    required: ["messageId"],
-    properties: {
-      messageId: { type: "string", pattern: UUID_PATTERN },
-    },
-  },
-  chatAndMessageId: {
-    type: "object" as const,
-    required: ["chatId", "messageId"],
-    properties: {
-      chatId: { type: "string", pattern: UUID_PATTERN },
-      messageId: { type: "string", pattern: UUID_PATTERN },
+      chatId: { type: "string" },
     },
   },
 } as const;
@@ -40,14 +22,6 @@ export const paramSchemas = {
  * Body schemas
  */
 export const bodySchemas = {
-  createChat: {
-    type: "object" as const,
-    required: ["title"],
-    properties: {
-      title: { type: "string", minLength: 1, maxLength: 255 },
-      model: { type: "string", default: "gpt-4" },
-    },
-  },
   completionMessage: {
     type: "object" as const,
     required: ["message"],
@@ -56,27 +30,12 @@ export const bodySchemas = {
       stream: { type: "boolean", default: true },
     },
   },
-  updateChat: {
-    type: "object" as const,
-    properties: {
-      title: { type: "string", minLength: 1, maxLength: 255 },
-      archived: { type: "boolean" },
-    },
-    minProperties: 1,
-  },
 } as const;
 
 /**
  * Query schemas
  */
 export const querySchemas = {
-  pagination: {
-    type: "object" as const,
-    properties: {
-      cursor: { type: "string" },
-      limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
-    },
-  },
   chatList: {
     type: "object" as const,
     properties: {
@@ -128,19 +87,6 @@ export const responseSchemas = {
  * Includes OpenAPI metadata (tags, summary, description) for documentation
  */
 export const routeSchemas = {
-  // POST /chats
-  createChat: {
-    tags: ["Chats"],
-    summary: "Create a new chat",
-    description: "Creates a new chat conversation with the specified title and model",
-    body: bodySchemas.createChat,
-    response: {
-      201: responseSchemas.chat,
-      400: responseSchemas.error,
-      401: responseSchemas.error,
-    },
-  } satisfies FastifySchema,
-
   // GET /chats
   listChats: {
     tags: ["Chats"],
@@ -159,48 +105,26 @@ export const routeSchemas = {
     },
   } satisfies FastifySchema,
 
-  // GET /chats/:chatId
-  getChat: {
+  // GET /chats/:chatId/history
+  getChatHistory: {
     tags: ["Chats"],
-    summary: "Get a chat",
-    description: "Returns a specific chat by ID",
+    summary: "Get chat history",
+    description: "Returns the message history for a specific chat",
     params: paramSchemas.chatId,
     response: {
-      200: responseSchemas.chat,
+      200: {
+        type: "object",
+        properties: {
+          chatId: { type: "string" },
+          messages: { type: "array", items: responseSchemas.message },
+        },
+      },
       401: responseSchemas.error,
       404: responseSchemas.error,
     },
   } satisfies FastifySchema,
 
-  // PATCH /chats/:chatId
-  updateChat: {
-    tags: ["Chats"],
-    summary: "Update a chat",
-    description: "Updates a chat's title or archived status",
-    params: paramSchemas.chatId,
-    body: bodySchemas.updateChat,
-    response: {
-      200: responseSchemas.chat,
-      400: responseSchemas.error,
-      401: responseSchemas.error,
-      404: responseSchemas.error,
-    },
-  } satisfies FastifySchema,
-
-  // DELETE /chats/:chatId
-  deleteChat: {
-    tags: ["Chats"],
-    summary: "Delete a chat",
-    description: "Permanently deletes a chat and all its messages",
-    params: paramSchemas.chatId,
-    response: {
-      204: { type: "null" },
-      401: responseSchemas.error,
-      404: responseSchemas.error,
-    },
-  } satisfies FastifySchema,
-
-  // POST /chats/:chatId/completions
+  // POST /chats/:chatId/completion
   createCompletion: {
     tags: ["Completions"],
     summary: "Create a completion",
@@ -210,26 +134,6 @@ export const routeSchemas = {
     response: {
       200: responseSchemas.message,
       400: responseSchemas.error,
-      401: responseSchemas.error,
-      404: responseSchemas.error,
-    },
-  } satisfies FastifySchema,
-
-  // GET /chats/:chatId/messages
-  listMessages: {
-    tags: ["Chats"],
-    summary: "List chat messages",
-    description: "Returns a paginated list of messages in a chat",
-    params: paramSchemas.chatId,
-    querystring: querySchemas.pagination,
-    response: {
-      200: {
-        type: "object",
-        properties: {
-          messages: { type: "array", items: responseSchemas.message },
-          nextCursor: { type: "string", nullable: true },
-        },
-      },
       401: responseSchemas.error,
       404: responseSchemas.error,
     },

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { chatsRoutes, completionsRoutes } from "./chats/index";
+import { authRoutes } from "./auth.routes";
 import { errorHandler, notFoundHandler } from "@middleware";
 
 /**
@@ -8,8 +9,10 @@ import { errorHandler, notFoundHandler } from "@middleware";
  * Registers all route plugins with their prefixes and sets up error handling
  *
  * Route structure:
- *   /api/v1/chats/*                  - Chat CRUD endpoints (authenticated)
- *   /api/v1/chats/:id/completions    - Completion endpoint (authenticated)
+ *   /api/auth/jwt/test                   - JWT test endpoint (public)
+ *   /api/chats                           - List all chats (authenticated)
+ *   /api/chats/:chatId/history           - Get chat message history (authenticated)
+ *   /api/chats/:chatId/completion        - AI completion with streaming (authenticated)
  */
 async function routerPluginCallback(fastify: FastifyInstance): Promise<void> {
   // Set global error handler with structured logging for observability
@@ -18,12 +21,15 @@ async function routerPluginCallback(fastify: FastifyInstance): Promise<void> {
   // Set 404 handler
   fastify.setNotFoundHandler(notFoundHandler);
 
-  // API v1 routes
+  // API routes
   fastify.register(async (api) => {
-    // Register chat CRUD routes at /api/v1/chats
+    // Register auth routes at /api/auth
+    api.register(authRoutes, { prefix: "/auth" });
+
+    // Register chat routes at /api/chats
     api.register(chatsRoutes, { prefix: "/chats" });
 
-    // Register completion routes at /api/v1/chats (they add /:chatId/completions)
+    // Register completion routes at /api/chats (they add /:chatId/completion)
     api.register(completionsRoutes, { prefix: "/chats" });
   }, { prefix: "/api" });
 
@@ -37,3 +43,4 @@ export const routerPlugin = fp(routerPluginCallback, {
 
 // Re-export individual routes for custom registration if needed
 export { chatsRoutes, completionsRoutes } from "./chats/index.js";
+export { authRoutes } from "./auth.routes.js";

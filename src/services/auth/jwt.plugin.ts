@@ -1,6 +1,6 @@
 import fastifyJwt from "@fastify/jwt";
 import fp from "fastify-plugin";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { JwtUserPayload } from "@middleware";
 import type { ClientType } from "@middleware";
 
@@ -41,6 +41,9 @@ async function jwtPluginCallback(fastify: FastifyInstance): Promise<void> {
   fastify.decorateRequest("clientType", "unknown");
 
   fastify.log.info("JWT plugin registered");
+
+
+  
 }
 
 export const jwtPlugin = fp(jwtPluginCallback, {
