@@ -2,6 +2,7 @@ import fastifyJwt from "@fastify/jwt";
 import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { JwtUserPayload } from "@middleware";
+import { AUTH } from "@config";
 
 
 
@@ -24,7 +25,7 @@ async function jwtPluginCallback(fastify: FastifyInstance): Promise<void> {
   await fastify.register(fastifyJwt, {
     secret: jwtSecret,
     sign: {
-      expiresIn: "7d", // Token expires in 7 days
+      expiresIn: AUTH.ACCESS_TOKEN_EXPIRY, // Token expires in 7 days
     },
   });
 

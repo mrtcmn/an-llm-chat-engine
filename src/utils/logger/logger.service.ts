@@ -1,6 +1,6 @@
 import pino from 'pino'
 import type { FastifyRequest, FastifyBaseLogger } from 'fastify'
-import type { FeatureFlags } from '@config/feature-flags.config'
+import type { FeatureFlags } from '@config/feature-flags.schema'
 import type { BoundLogger } from './logger.types'
 
 /**

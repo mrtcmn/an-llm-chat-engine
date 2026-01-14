@@ -11,7 +11,7 @@ export {
   querySchemas,
   responseSchemas,
   routeSchemas,
-} from "./validation.middleware.js";
+} from "../schemas/index.js";
 export {
   errorHandler,
   notFoundHandler,
@@ -19,6 +19,7 @@ export {
 } from "./error-handler.middleware.js";
 export type { ErrorResponse } from "./error-handler.middleware.js";
 export { rateLimitMiddleware } from "./rate-limit.middleware.js";
+export type { RouteRateLimitConfig } from "./rate-limit.middleware.js";
 export { loggingMiddleware } from "./logging.middleware.js";
 export { requestContextMiddleware } from "./request-context.middleware.js";
 

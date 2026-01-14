@@ -8,10 +8,3 @@ export const featureFlagsSchema = z.object({
 })
 
 export type FeatureFlags = z.infer<typeof featureFlagsSchema>
-
-export const defaultFeatureFlags: FeatureFlags = {
-  streamingEnabled: true,
-  paginationLimit: 20,
-  aiToolsEnabled: false,
-  chatHistoryEnabled: true,
-}

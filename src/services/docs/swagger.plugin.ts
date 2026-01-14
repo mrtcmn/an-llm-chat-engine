@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import fastifySwagger from "@fastify/swagger";
 import scalarFastify from "@scalar/fastify-api-reference";
+import { API } from "@config";
 
 /**
  * Swagger/OpenAPI plugin with Scalar UI
@@ -43,7 +44,7 @@ async function swaggerPluginCallback(fastify: FastifyInstance): Promise<void> {
 
   // Register Scalar for beautiful API reference UI
   await fastify.register(scalarFastify, {
-    routePrefix: "/docs",
+    routePrefix: API.DOCS_PATH,
     configuration: {
       title: "LLM Chat Engine API",
       theme: "default",

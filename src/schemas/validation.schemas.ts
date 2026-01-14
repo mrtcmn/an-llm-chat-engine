@@ -1,3 +1,4 @@
+import { PAGINATION } from "@config";
 import type { FastifySchema } from "fastify";
 
 /**
@@ -38,8 +39,7 @@ export const querySchemas = {
   chatList: {
     type: "object" as const,
     properties: {
-      limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
-      offset: { type: "integer", minimum: 0, default: 0 },
+      limit: { type: "integer", minimum: PAGINATION.MIN_LIMIT, maximum: PAGINATION.MAX_LIMIT, default: PAGINATION.DEFAULT_LIMIT },
       page: { type: "integer", minimum: 1 },
     },
   },

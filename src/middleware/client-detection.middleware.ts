@@ -1,79 +1,110 @@
-import type { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from "fastify";
+import type { FastifyRequest, FastifyReply } from "fastify";
+import { UAParser } from "ua-parser-js";
 
 export type ClientType = "web" | "mobile" | "desktop" | "unknown";
-/**
- * Extend Fastify types to include our custom decorators
- */
+
 declare module "fastify" {
   interface FastifyRequest {
     clientType: ClientType;
   }
 }
-/**
- * Parse User-Agent to determine client type
- */
+
 function parseUserAgent(userAgent: string | undefined): ClientType {
   if (!userAgent) return "unknown";
 
-  const ua = userAgent.toLowerCase();
+  try {
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
 
-  // Mobile detection
-  if (
-    ua.includes("mobile") ||
-    ua.includes("android") ||
-    ua.includes("iphone") ||
-    ua.includes("ipad") ||
-    ua.includes("ipod")
-  ) {
-    return "mobile";
+    const device = result.device;
+    const browser = result.browser;
+    const os = result.os;
+    const ua = userAgent.toLowerCase();
+
+    if (ua.includes("electron")) {
+      return "desktop";
+    }
+
+    if (ua.includes("desktop")) {
+      if (os.name && ["Windows", "Mac OS", "Linux", "Ubuntu", "Debian", "Fedora"].includes(os.name)) {
+        return "desktop";
+      }
+      return "desktop";
+    }
+
+    if (device.type && ["mobile", "tablet", "wearable"].includes(device.type)) {
+      return "mobile";
+    }
+
+    if (os.name && ["Android", "iOS", "Windows Phone", "BlackBerry", "webOS"].includes(os.name)) {
+      return "mobile";
+    }
+
+    if (
+      ua.includes("android") ||
+      ua.includes("iphone") ||
+      ua.includes("ipad") ||
+      ua.includes("ipod") ||
+      (ua.includes("mobile") && !ua.includes("mobile safari"))
+    ) {
+      return "mobile";
+    }
+
+    if (browser.name) {
+      const webBrowsers = [
+        "Chrome", "Firefox", "Safari", "Edge", "Opera", "IE", 
+        "Chromium", "Brave", "Vivaldi", "Arc", "Samsung Browser", "Mobile Safari"
+      ];
+      
+      if (webBrowsers.some(b => browser.name?.includes(b))) {
+        return "web";
+      }
+    }
+
+    if (os.name && ["Windows", "Mac OS", "Linux", "Ubuntu", "Debian", "Fedora", "Chrome OS"].includes(os.name)) {
+      return "web";
+    }
+
+    if (
+      ua.includes("mozilla") ||
+      ua.includes("chrome") ||
+      ua.includes("safari") ||
+      ua.includes("firefox") ||
+      ua.includes("edge")
+    ) {
+      return "web";
+    }
+
+    return "unknown";
+  } catch (error) {
+    return "unknown";
   }
-
-  // Desktop detection (Electron or similar)
-  if (ua.includes("electron") || ua.includes("desktop")) {
-    return "desktop";
-  }
-
-  // Default to web for browser user agents
-  if (
-    ua.includes("mozilla") ||
-    ua.includes("chrome") ||
-    ua.includes("safari") ||
-    ua.includes("firefox") ||
-    ua.includes("edge")
-  ) {
-    return "web";
-  }
-
-  return "unknown";
 }
 
-/**
- * Client detection middleware
- * Detects client type from X-Client-Type header or User-Agent
- * Attaches clientType to request for downstream use
- */
-export function clientDetectionMiddleware(
+export async function clientDetectionMiddleware(
   req: FastifyRequest,
   reply: FastifyReply,
-  done: HookHandlerDoneFunction,
-): void {
-  // Prefer explicit header over User-Agent parsing
-  const headerClientType = req.headers["x-client-type"] as string | undefined;
+): Promise<void> {
+  try {
+    const headerClientType = req.headers["x-client-type"] as string | undefined;
 
-  let clientType: ClientType;
+    let clientType: ClientType;
 
-  if (headerClientType && isValidClientType(headerClientType)) {
-    clientType = headerClientType as ClientType;
-  } else {
-    clientType = parseUserAgent(req.headers["user-agent"]);
+    if (headerClientType && isValidClientType(headerClientType)) {
+      clientType = headerClientType as ClientType;
+    } else {
+      clientType = parseUserAgent(req.headers["user-agent"]);
+    }
+
+    req.clientType = clientType;
+
+    req.logger.debug("[Middleware] ClientDetection: client type detected", { clientType });
+  } catch (error) {
+    req.logger.info("[Middleware] ClientDetection: failed to detect client type, using unknown", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+    req.clientType = "unknown";
   }
-
-  // Attach to request for downstream middleware/handlers
-  req.clientType = clientType;
-
-  req.logger.debug("[Middleware] ClientDetection: client type detected", { clientType });
-
-  done();
 }
 
 function isValidClientType(type: string): type is ClientType {

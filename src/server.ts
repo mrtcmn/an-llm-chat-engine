@@ -12,16 +12,17 @@ import { routerPlugin } from "@routes";
 import { REQUEST } from "@config/constants";
 import { requestContextMiddleware, rateLimitMiddleware } from "@middleware";
 
-const isDevelopment = process.env.NODE_ENV === "development";
-
 const fastify = Fastify({
   genReqId: (req) => {
     // Use incoming x-request-id header if provided, otherwise generate UUID
-    return (req.headers[REQUEST.REQUEST_ID_HEADER] as string) || `${process.env.APP_NAME}_${randomUUID()}`;
+    return (
+      (req.headers[REQUEST.REQUEST_ID_HEADER] as string) ||
+      `${process.env.APP_NAME}_${randomUUID()}`
+    );
   },
-
+  requestTimeout: REQUEST.DEFAULT_TIMEOUT,
+  bodyLimit: REQUEST.MAX_PAYLOAD_SIZE,
   disableRequestLogging: true, // Disable default request logging - we'll use custom onResponse hook
-
 });
 
 // Register plugins in dependency order
@@ -40,28 +41,16 @@ fastify.addHook("preHandler", requestContextMiddleware);
 // Rate limit middleware (globally checks IP-based rate limits, blocks restricted IPs early)
 fastify.addHook("preHandler", rateLimitMiddleware);
 
-// Database plugin (depends on config)
 fastify.register(databasePlugin);
-
-// AI plugin (depends on config, provides AI service)
 fastify.register(aiPlugin);
-
-// Chat service plugin (depends on config, database)
 fastify.register(chatServicePlugin);
-
-// JWT plugin (depends on config, provides auth infrastructure)
 fastify.register(jwtPlugin);
-
-// Swagger plugin (depends on config, provides API documentation)
 fastify.register(swaggerPlugin);
-
-// Router plugin (depends on jwt, database, and chat services, registers all routes)
 fastify.register(routerPlugin);
 
 const start = async () => {
   try {
-    // Access config from fastify instance (DI pattern)
-    const port = parseInt(process.env.PORT || "3000");
+    const port = parseInt(process.env.PORT || "3000", 10);
     await fastify.listen({ port: port, host: "0.0.0.0" });
     fastify.log.info(`Server listening on port ${port}`);
   } catch (err) {

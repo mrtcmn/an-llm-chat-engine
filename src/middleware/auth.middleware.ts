@@ -21,10 +21,8 @@ export async function authMiddleware(
   reply: FastifyReply,
 ): Promise<void> {
   try {
-    // @fastify/jwt adds jwtVerify to request
     await req.jwtVerify();
 
-    // User is automatically attached by @fastify/jwt
     req.logger.debug("[Middleware] Auth: user authenticated", { userId: (req.user as JwtUserPayload).sub });
   } catch (err) {
     req.logger.warn("[Middleware] Auth: verification failed", { error: (err as Error).message });

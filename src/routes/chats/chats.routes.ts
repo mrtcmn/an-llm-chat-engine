@@ -45,10 +45,9 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
     { schema: routeSchemas.listChats },
     async (req: FastifyRequest<ListChatsRequest>, reply: FastifyReply) => {
       const userId = req.user!.sub;
-      const { limit, offset, page } = req.query;
+      const { limit, page } = req.query;
 
-      throw AppError.internal("Internal server error");
-      return fastify.chatService.listChats(userId, { limit, offset, page });
+      return fastify.chatService.listChats(userId, { limit, page });
     },
   );
 

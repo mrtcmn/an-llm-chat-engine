@@ -1,5 +1,5 @@
 import type { FastifyRequest } from 'fastify'
-import type { FeatureFlags } from '@config/feature-flags.config'
+import type { FeatureFlags } from '@config/feature-flags.schema'
 
 /**
  * Base structured log context - always included

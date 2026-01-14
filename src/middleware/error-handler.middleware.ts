@@ -1,9 +1,6 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { HTTP_STATUS, ERROR_CODES } from "@config";
 
-/**
- * Standard error response format
- */
 export interface ErrorResponse {
   error: string;
   message: string;
@@ -11,38 +8,21 @@ export interface ErrorResponse {
   details?: unknown;
 }
 
-/**
- * Structured error details for nested logging
- */
 export interface ErrorContext {
-  // Business context
   userId?: string;
   chatId?: string;
   messageId?: string;
   operation?: string;
-  
-  // Request context
   clientType?: string;
-  
-  // Error specifics
   errorCode?: string;
   errorCategory?: string;
-  
-  // Additional nested data
   metadata?: Record<string, unknown>;
-  
-  // Integration context
   externalService?: string;
   externalRequestId?: string;
-  
-  // Performance
   duration?: number;
   retryAttempt?: number;
 }
 
-/**
- * Application-specific error class with structured logging support
- */
 export class AppError extends Error {
   public readonly errorCode?: string;
   public readonly errorCategory?: string;
@@ -63,116 +43,95 @@ export class AppError extends Error {
   }
 
   static badRequest(message: string, details?: unknown, context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.BAD_REQUEST, "Bad Request", message, details, {
-      ...context,
-      errorCategory: context?.errorCategory || "validation",
-      errorCode: context?.errorCode || ERROR_CODES.VALIDATION_ERROR,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "validation";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.VALIDATION_ERROR;
+    return new AppError(HTTP_STATUS.BAD_REQUEST, "Bad Request", message, details, ctx);
   }
 
   static unauthorized(message: string = "Unauthorized", context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized", message, undefined, {
-      ...context,
-      errorCategory: context?.errorCategory || "authentication",
-      errorCode: context?.errorCode || ERROR_CODES.UNAUTHORIZED,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "authentication";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.UNAUTHORIZED;
+    return new AppError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized", message, undefined, ctx);
   }
 
   static forbidden(message: string = "Forbidden", context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.FORBIDDEN, "Forbidden", message, undefined, {
-      ...context,
-      errorCategory: context?.errorCategory || "authorization",
-      errorCode: context?.errorCode || ERROR_CODES.FORBIDDEN,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "authorization";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.FORBIDDEN;
+    return new AppError(HTTP_STATUS.FORBIDDEN, "Forbidden", message, undefined, ctx);
   }
 
   static notFound(resource: string = "Resource", context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.NOT_FOUND, "Not Found", `${resource} not found`, undefined, {
-      ...context,
-      errorCategory: context?.errorCategory || "not_found",
-      errorCode: context?.errorCode || ERROR_CODES.NOT_FOUND,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "not_found";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.NOT_FOUND;
+    return new AppError(HTTP_STATUS.NOT_FOUND, "Not Found", `${resource} not found`, undefined, ctx);
   }
 
   static conflict(message: string, details?: unknown, context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.CONFLICT, "Conflict", message, details, {
-      ...context,
-      errorCategory: context?.errorCategory || "conflict",
-      errorCode: context?.errorCode || ERROR_CODES.CONFLICT,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "conflict";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.CONFLICT;
+    return new AppError(HTTP_STATUS.CONFLICT, "Conflict", message, details, ctx);
   }
 
   static tooManyRequests(message: string = "Too many requests", context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.TOO_MANY_REQUESTS, "Too Many Requests", message, undefined, {
-      ...context,
-      errorCategory: context?.errorCategory || "rate_limit",
-      errorCode: context?.errorCode || ERROR_CODES.RATE_LIMIT_EXCEEDED,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "rate_limit";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.RATE_LIMIT_EXCEEDED;
+    return new AppError(HTTP_STATUS.TOO_MANY_REQUESTS, "Too Many Requests", message, undefined, ctx);
   }
 
   static internal(message: string = "Internal server error", context?: ErrorContext): AppError {
-    return new AppError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Internal Server Error", message, undefined, {
-      ...context,
-      errorCategory: context?.errorCategory || "internal",
-      errorCode: context?.errorCode || ERROR_CODES.INTERNAL_ERROR,
-    });
+    const ctx = context || {};
+    ctx.errorCategory = ctx.errorCategory || "internal";
+    ctx.errorCode = ctx.errorCode || ERROR_CODES.INTERNAL_ERROR;
+    return new AppError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Internal Server Error", message, undefined, ctx);
   }
 }
 
-/**
- * Map known error types to HTTP status codes
- */
 function getStatusCode(error: FastifyError | Error): number {
-  // Fastify validation errors
-  if ("validation" in error) {
+  if ("validation" in error && error.validation) {
     return HTTP_STATUS.BAD_REQUEST;
   }
 
-  // AppError instances
   if (error instanceof AppError) {
     return error.statusCode;
   }
 
-  // Fastify errors with statusCode
   if ("statusCode" in error && typeof error.statusCode === "number") {
     return error.statusCode;
   }
 
-  // Default to 500
   return HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
-/**
- * Global error handler for Fastify
- * Provides consistent error response format and structured logging for observability
- */
-export function errorHandler(
+export async function errorHandler(
   error: FastifyError,
   req: FastifyRequest,
   reply: FastifyReply,
-): void {
+): Promise<void> {
   const statusCode = getStatusCode(error);
 
-  // Build structured log object with nested context
   const logContext: Record<string, unknown> = {
-    // HTTP context
     http: {
+      requestId: req.id,
       method: req.method,
       url: req.url,
       statusCode,
       userAgent: req.headers["user-agent"],
       ip: req.ip,
     },
-    
-    // Error details
     error: {
       name: error.name,
       message: error.message,
+      code: "code" in error ? error.code : undefined,
       stack: statusCode >= 500 ? error.stack : undefined,
     },
   };
 
-  // Add AppError-specific context (nested business logic details)
   if (error instanceof AppError) {
     logContext.error = {
       ...(logContext.error as Record<string, unknown>),
@@ -181,7 +140,6 @@ export function errorHandler(
       details: error.details,
     };
 
-    // Add business context (userId, chatId, operation, etc.)
     if (error.context) {
       logContext.business = {
         userId: error.context.userId,
@@ -191,7 +149,6 @@ export function errorHandler(
         clientType: error.context.clientType,
       };
 
-      // Add integration context if present
       if (error.context.externalService) {
         logContext.integration = {
           service: error.context.externalService,
@@ -200,26 +157,20 @@ export function errorHandler(
         };
       }
 
-      // Add performance metrics if present
       if (error.context.duration) {
-        logContext.performance = {
-          duration: error.context.duration,
-        };
+        logContext.performance = { duration: error.context.duration };
       }
 
-      // Add any custom metadata
       if (error.context.metadata) {
         logContext.metadata = error.context.metadata;
       }
     }
   }
 
-  // Add validation errors
-  if ("validation" in error) {
+  if ("validation" in error && error.validation) {
     logContext.validation = error.validation;
   }
 
-  // Add user context from JWT if available
   if (req.user) {
     logContext.user = {
       id: req.user.sub,
@@ -227,40 +178,39 @@ export function errorHandler(
     };
   }
 
-  // Log with appropriate level and human-readable message
-  const logMessage = error instanceof AppError && error.context?.operation
-    ? `Error in ${error.context.operation}: ${error.message}`
-    : error.message;
+  if (req.logger) {
+    const logMessage = error instanceof AppError && error.context?.operation
+      ? `Error in ${error.context.operation}: ${error.message}`
+      : error.message;
 
-  if (statusCode >= 500) {
-    req.logger.error(logMessage, error, logContext);
-  } else if (statusCode >= 400) {
-    req.logger.warn(logMessage, logContext);
+    if (statusCode >= 500) {
+      req.logger.error(logMessage, error, logContext);
+    } else if (statusCode >= 400) {
+      req.logger.warn(logMessage, logContext);
+    }
   }
 
-  // Build error response (hide sensitive details from clients)
   const response: ErrorResponse = {
     error: error instanceof AppError ? error.error : getErrorName(statusCode),
-    message: statusCode >= 500 ? "Internal server error" : error.message,
+    message: error instanceof AppError ? error.message : (statusCode >= 500 ? "Internal server error" : error.message),
     statusCode,
   };
 
-  // Include validation details for 400 errors
-  if (statusCode === 400 && "validation" in error) {
-    response.details = error.validation;
+  try {
+    if (statusCode === 400 && "validation" in error && error.validation) {
+      response.details = error.validation;
+    }
+
+    if (error instanceof AppError && error.details) {
+      response.details = error.details;
+    }
+  } catch (serializationError) {
+    req.logger?.warn("Error serializing error details", { serializationError });
   }
 
-  // Include details from AppError (but not sensitive context)
-  if (error instanceof AppError && error.details) {
-    response.details = error.details;
-  }
-
-  reply.status(statusCode).send(response);
+  return reply.status(statusCode).send(response);
 }
 
-/**
- * Get error name from status code
- */
 function getErrorName(statusCode: number): string {
   const names: Record<number, string> = {
     400: "Bad Request",
@@ -276,17 +226,8 @@ function getErrorName(statusCode: number): string {
   return names[statusCode] || "Error";
 }
 
-/**
- * Not found handler for undefined routes
- */
-export function notFoundHandler(
-  req: FastifyRequest,
-  reply: FastifyReply,
-): void {
-  req.logger.debug("[Middleware] NotFound: route not found", { 
-    url: req.url, 
-    method: req.method 
-  });
+export function notFoundHandler(req: FastifyRequest, reply: FastifyReply): void {
+  req.logger?.debug("Route not found", { url: req.url, method: req.method });
 
   reply.status(404).send({
     error: "Not Found",
