@@ -19,14 +19,18 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Copy dependency files
-COPY package*.json ./
-COPY prisma ./prisma/
-COPY prisma.config.ts ./
+# Copy only package files first for better caching
+# This layer will be cached unless package files change
+COPY package.json package-lock.json ./
 
-# Install dependencies with clean install for reproducible builds
+# Install dependencies - npm ci respects package-lock.json for reproducible builds
+# This will only re-run if package files changed
 RUN npm ci --only=production --ignore-scripts && \
     npm cache clean --force
+
+# Copy Prisma files after npm install for better layer caching
+COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -38,21 +42,25 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files
-COPY package*.json ./
-COPY tsconfig.json ./
+# Copy only package files first for better caching
+# This layer will be cached unless package files change
+COPY package.json package-lock.json ./
 
-# Install all dependencies (including dev dependencies for build)
+# Install all dependencies - npm ci respects package-lock.json for reproducible builds
+# This includes dev dependencies needed for building
 RUN npm ci --ignore-scripts && \
     npm cache clean --force
 
-# Copy source code
-COPY src ./src
+# Copy configuration and Prisma files
+COPY tsconfig.json ./
 COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Generate Prisma Client for build
 RUN npx prisma generate
+
+# Copy source code (separate layer for better caching)
+COPY src ./src
 
 # Build the application
 RUN npm run build

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ChatRepository } from '../../repositories/chat.repository'
 import { createMockPrismaClient, type MockPrismaClient } from '../mocks/prisma.mock'
+import { createMockDatabaseService } from '../mocks/database.mock'
 import { mockChat, mockChat2, mockUser } from '../fixtures'
 
 describe('ChatRepository', () => {
@@ -9,7 +10,8 @@ describe('ChatRepository', () => {
 
   beforeEach(() => {
     mockPrisma = createMockPrismaClient()
-    chatRepo = new ChatRepository(mockPrisma as any)
+    const mockDb = createMockDatabaseService(mockPrisma)
+    chatRepo = new ChatRepository(mockDb)
   })
 
   describe('findById', () => {

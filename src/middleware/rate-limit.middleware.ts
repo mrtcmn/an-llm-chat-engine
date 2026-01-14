@@ -162,9 +162,10 @@ export async function rateLimitMiddleware(
   const routeWindow = routeConfig?.customWindow ?? LIMITS.route.windowMs;
 
   // Tier 1: IP-based limit (unless explicitly skipped)
+  let ipResult: { allowed: boolean; remaining: number; resetAt: number } | undefined;
   if (!routeConfig?.skipIpCheck) {
     const ipKey = `ip:${ip}`;
-    const ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
+    ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
 
     if (!ipResult.allowed) {
       req.logger.warn("[Middleware] RateLimit: IP rate limit exceeded", { ip });
@@ -213,15 +214,14 @@ export async function rateLimitMiddleware(
       limit: routeLimit 
     });
   } else {
-    // Unauthenticated: only IP limit headers
-    const ipKey = `ip:${ip}`;
-    const ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
-    
-    setRateLimitHeaders(reply, LIMITS.ip.limit, ipResult.remaining, ipResult.resetAt);
+    // Unauthenticated: only IP limit headers (already checked above)
+    if (ipResult) {
+      setRateLimitHeaders(reply, LIMITS.ip.limit, ipResult.remaining, ipResult.resetAt);
+    }
 
     req.logger.debug("[Middleware] RateLimit: rate limit check passed (unauthenticated)", { 
       ip,
-      remaining: ipResult.remaining 
+      remaining: ipResult?.remaining 
     });
   }
 }

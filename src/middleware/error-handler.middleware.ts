@@ -192,7 +192,7 @@ export async function errorHandler(
 
   const response: ErrorResponse = {
     error: error instanceof AppError ? error.error : getErrorName(statusCode),
-    message: error instanceof AppError ? error.message : (statusCode >= 500 ? "Internal server error" : error.message),
+    message: error instanceof AppError && statusCode >= 500 ? "Internal server error" : (error instanceof AppError ? error.message : (statusCode >= 500 ? "Internal server error" : error.message)),
     statusCode,
   };
 
@@ -227,7 +227,7 @@ function getErrorName(statusCode: number): string {
 }
 
 export function notFoundHandler(req: FastifyRequest, reply: FastifyReply): void {
-  req.logger?.debug("Route not found", { url: req.url, method: req.method });
+  req.logger?.debug("[Middleware] NotFound: route not found", { url: req.url, method: req.method });
 
   reply.status(404).send({
     error: "Not Found",
