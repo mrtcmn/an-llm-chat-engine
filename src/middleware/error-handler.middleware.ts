@@ -1,4 +1,5 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { HTTP_STATUS, ERROR_CODES } from "@config";
 
 /**
  * Standard error response format
@@ -63,51 +64,58 @@ export class AppError extends Error {
   }
 
   static badRequest(message: string, details?: unknown, context?: ErrorContext): AppError {
-    return new AppError(400, "Bad Request", message, details, {
+    return new AppError(HTTP_STATUS.BAD_REQUEST, "Bad Request", message, details, {
       ...context,
       errorCategory: context?.errorCategory || "validation",
+      errorCode: context?.errorCode || ERROR_CODES.VALIDATION_ERROR,
     });
   }
 
   static unauthorized(message: string = "Unauthorized", context?: ErrorContext): AppError {
-    return new AppError(401, "Unauthorized", message, undefined, {
+    return new AppError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized", message, undefined, {
       ...context,
       errorCategory: context?.errorCategory || "authentication",
+      errorCode: context?.errorCode || ERROR_CODES.UNAUTHORIZED,
     });
   }
 
   static forbidden(message: string = "Forbidden", context?: ErrorContext): AppError {
-    return new AppError(403, "Forbidden", message, undefined, {
+    return new AppError(HTTP_STATUS.FORBIDDEN, "Forbidden", message, undefined, {
       ...context,
       errorCategory: context?.errorCategory || "authorization",
+      errorCode: context?.errorCode || ERROR_CODES.FORBIDDEN,
     });
   }
 
   static notFound(resource: string = "Resource", context?: ErrorContext): AppError {
-    return new AppError(404, "Not Found", `${resource} not found`, undefined, {
+    return new AppError(HTTP_STATUS.NOT_FOUND, "Not Found", `${resource} not found`, undefined, {
       ...context,
       errorCategory: context?.errorCategory || "not_found",
+      errorCode: context?.errorCode || ERROR_CODES.NOT_FOUND,
     });
   }
 
   static conflict(message: string, details?: unknown, context?: ErrorContext): AppError {
-    return new AppError(409, "Conflict", message, details, {
+    return new AppError(HTTP_STATUS.CONFLICT, "Conflict", message, details, {
       ...context,
       errorCategory: context?.errorCategory || "conflict",
+      errorCode: context?.errorCode || ERROR_CODES.CONFLICT,
     });
   }
 
   static tooManyRequests(message: string = "Too many requests", context?: ErrorContext): AppError {
-    return new AppError(429, "Too Many Requests", message, undefined, {
+    return new AppError(HTTP_STATUS.TOO_MANY_REQUESTS, "Too Many Requests", message, undefined, {
       ...context,
       errorCategory: context?.errorCategory || "rate_limit",
+      errorCode: context?.errorCode || ERROR_CODES.RATE_LIMIT_EXCEEDED,
     });
   }
 
   static internal(message: string = "Internal server error", context?: ErrorContext): AppError {
-    return new AppError(500, "Internal Server Error", message, undefined, {
+    return new AppError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Internal Server Error", message, undefined, {
       ...context,
       errorCategory: context?.errorCategory || "internal",
+      errorCode: context?.errorCode || ERROR_CODES.INTERNAL_ERROR,
     });
   }
 }
@@ -118,7 +126,7 @@ export class AppError extends Error {
 function getStatusCode(error: FastifyError | Error): number {
   // Fastify validation errors
   if ("validation" in error) {
-    return 400;
+    return HTTP_STATUS.BAD_REQUEST;
   }
 
   // AppError instances
@@ -132,7 +140,7 @@ function getStatusCode(error: FastifyError | Error): number {
   }
 
   // Default to 500
-  return 500;
+  return HTTP_STATUS.INTERNAL_SERVER_ERROR;
 }
 
 /**

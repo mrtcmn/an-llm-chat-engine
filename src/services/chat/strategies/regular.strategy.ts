@@ -1,10 +1,7 @@
-import type { FastifyRequest } from 'fastify'
-import { AIService } from '../../../services/ai'
-import type { AIMessage, AICompletionOptions, ToolCall } from '../../../services/ai'
+import type { FastifyRequest, FastifyReply } from 'fastify'
+import { AIService } from '../../ai'
+import type { AIMessage, AICompletionOptions, ToolCall } from '../../ai'
 
-/**
- * Regular (non-streaming) completion response
- */
 export interface RegularCompletionResponse {
   id: string
   chatId: string
@@ -15,27 +12,25 @@ export interface RegularCompletionResponse {
 }
 
 /**
- * Regular Strategy
- * Handles non-streaming JSON responses for AI completions
- * Returns a complete response after AI finishes generating
+ * Regular Strategy - JSON response for AI completions
  */
 export async function regularStrategy(
   req: FastifyRequest,
+  reply: FastifyReply,
   chatId: string,
   messages: AIMessage[],
   options?: AICompletionOptions
 ): Promise<RegularCompletionResponse> {
   const aiService = AIService.getInstance()
 
-  req.log.info({ messageCount: messages.length }, 'Starting regular completion')
+  req.log.info({ messageCount: messages.length }, 'Starting completion')
 
   const response = await aiService.complete(messages, options)
 
-  // Log tool usage if any
   if (response.toolCalls && response.toolCalls.length > 0) {
     req.log.info(
       { toolCount: response.toolCalls.length, tools: response.toolCalls.map(tc => tc.name) },
-      'Tools executed in completion'
+      'Tools executed'
     )
   }
 

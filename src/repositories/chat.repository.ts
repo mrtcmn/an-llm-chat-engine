@@ -9,14 +9,23 @@ export class ChatRepository {
 
   async findByUserId(
     userId: string,
-    options: { limit?: number } = {}
-  ): Promise<Chat[]> {
-    const { limit = 20 } = options
-    return this.prisma.chat.findMany({
-      where: { userId },
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    })
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<{ chats: Chat[]; total: number }> {
+    const { limit = 20, offset = 0 } = options;
+    
+    const [chats, total] = await this.prisma.$transaction([
+      this.prisma.chat.findMany({
+        where: { userId },
+        take: limit,
+        skip: offset,
+        orderBy: { createdAt: 'desc' }
+      }),
+      this.prisma.chat.count({
+        where: { userId }
+      })
+    ]);
+
+    return { chats, total };
   }
 
   async create(data: { userId: string; title: string }): Promise<Chat> {

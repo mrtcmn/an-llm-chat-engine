@@ -1,7 +1,14 @@
 import type { FastifyRequest, FastifyReply, HookHandlerDoneFunction } from "fastify";
 
 export type ClientType = "web" | "mobile" | "desktop" | "unknown";
-
+/**
+ * Extend Fastify types to include our custom decorators
+ */
+declare module "fastify" {
+  interface FastifyRequest {
+    clientType: ClientType;
+  }
+}
 /**
  * Parse User-Agent to determine client type
  */

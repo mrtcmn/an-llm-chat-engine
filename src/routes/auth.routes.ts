@@ -1,10 +1,24 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import {
+  registerMiddlewareChain,
+  rateLimitMiddleware,
+  appCheckMiddleware,
+  clientDetectionMiddleware,
+  loggingMiddleware,
+} from "@middleware";
 
 /**
  * Auth routes plugin
  * Provides authentication-related endpoints including JWT testing
  */
 export async function authRoutes(fastify: FastifyInstance): Promise<void> {
+  // Apply public middleware chain (no auth required) in exact order
+  registerMiddlewareChain(fastify, [
+    rateLimitMiddleware,
+    appCheckMiddleware,
+    clientDetectionMiddleware,
+    loggingMiddleware,
+  ]);
   /**
    * JWT Test Endpoint
    * Returns a test JWT token with hardcoded payload

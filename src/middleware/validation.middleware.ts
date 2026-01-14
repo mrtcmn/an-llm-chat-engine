@@ -38,9 +38,9 @@ export const querySchemas = {
   chatList: {
     type: "object" as const,
     properties: {
-      cursor: { type: "string" },
       limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
-      archived: { type: "boolean" },
+      offset: { type: "integer", minimum: 0, default: 0 },
+      page: { type: "integer", minimum: 1 },
     },
   },
 } as const;
@@ -90,14 +90,26 @@ export const routeSchemas = {
   listChats: {
     tags: ["Chats"],
     summary: "List all chats",
-    description: "Returns a paginated list of chats for the authenticated user",
+    description: "Returns a paginated list of chats for the authenticated user. Use either 'page' or 'offset' for pagination.",
     querystring: querySchemas.chatList,
     response: {
       200: {
         type: "object",
         properties: {
           chats: { type: "array", items: responseSchemas.chat },
-          nextCursor: { type: "string", nullable: true },
+          pagination: {
+            type: "object",
+            properties: {
+              total: { type: "integer" },
+              limit: { type: "integer" },
+              offset: { type: "integer" },
+              count: { type: "integer" },
+              hasMore: { type: "boolean" },
+              nextOffset: { type: ["integer", "null"] },
+              page: { type: "integer" },
+              totalPages: { type: "integer" },
+            },
+          },
         },
       },
       401: responseSchemas.error,

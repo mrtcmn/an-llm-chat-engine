@@ -1,7 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   registerMiddlewareChain,
-  middlewareChains,
+  rateLimitMiddleware,
+  appCheckMiddleware,
+  authMiddleware,
+  clientDetectionMiddleware,
+  loggingMiddleware,
   routeSchemas,
 } from "@middleware";
 
@@ -16,9 +20,9 @@ interface ChatParamsRequest {
 
 interface ListChatsRequest {
   Querystring: {
-    cursor?: string;
     limit?: number;
-    archived?: boolean;
+    offset?: number;
+    page?: number;
   };
 }
 
@@ -29,8 +33,14 @@ interface ListChatsRequest {
  *   GET /chats/:chatId/history - Get message history for a chat
  */
 export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
-  // Apply authenticated middleware chain to all routes in this plugin
-  registerMiddlewareChain(fastify, middlewareChains.authenticated);
+  // Apply authenticated middleware chain to all routes in this plugin in exact order
+  registerMiddlewareChain(fastify, [
+    rateLimitMiddleware,
+    appCheckMiddleware,
+    authMiddleware,
+    clientDetectionMiddleware,
+    loggingMiddleware,
+  ]);
 
   // GET /chats - List all chats
   fastify.get<ListChatsRequest>(
@@ -38,7 +48,8 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
     { schema: routeSchemas.listChats },
     async (req: FastifyRequest<ListChatsRequest>, reply: FastifyReply) => {
       const userId = req.user!.sub;
-      return fastify.chatService.listChats(userId);
+      const { limit, offset, page } = req.query;
+      return fastify.chatService.listChats(userId, { limit, offset, page });
     },
   );
 

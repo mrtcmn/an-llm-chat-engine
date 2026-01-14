@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { AppError } from "./error-handler.middleware.js";
 import type { JwtUserPayload } from "./auth.middleware.js";
+import { RATE_LIMITS } from "@config";
 
 interface RateLimitEntry {
   count: number;
@@ -52,22 +53,23 @@ const store = new RateLimitStore();
 
 /**
  * Rate limit tiers (from most to least permissive)
+ * Using constants from @config for consistency across the application
  */
 const LIMITS = {
   // Tier 1: IP-based - largest window, most permissive
   ip: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 500,
+    windowMs: RATE_LIMITS.IP.WINDOW_MS,
+    limit: RATE_LIMITS.IP.MAX_REQUESTS,
   },
   // Tier 2: User ID - medium window
   user: {
-    windowMs: 60 * 1000, // 1 minute
-    limit: 60,
+    windowMs: RATE_LIMITS.USER.WINDOW_MS,
+    limit: RATE_LIMITS.USER.MAX_REQUESTS,
   },
   // Tier 3: User ID + route - smallest, most restrictive
   route: {
-    windowMs: 60 * 1000, // 1 minute
-    limit: 20,
+    windowMs: RATE_LIMITS.ROUTE.WINDOW_MS,
+    limit: RATE_LIMITS.ROUTE.MAX_REQUESTS,
   },
 } as const;
 

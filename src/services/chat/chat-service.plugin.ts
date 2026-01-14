@@ -5,6 +5,7 @@ import { MessageRepository } from '../../repositories/message.repository'
 import { UserRepository } from '../../repositories/user.repository'
 import { ChatService } from './chat.service'
 import { CompletionService } from './completion.service'
+import { ResponseStrategyPlugin } from './response-strategy.plugin'
 import type { PrismaService } from '../database/prisma.service'
 
 declare module 'fastify' {
@@ -27,7 +28,8 @@ const chatServicePlugin: FastifyPluginAsync = async (fastify: FastifyInstance) =
   const userRepo = new UserRepository(prisma)
 
   const chatService = new ChatService(chatRepo, messageRepo, config)
-  const completionService = new CompletionService(chatService, messageRepo, config)
+  const responseStrategy = new ResponseStrategyPlugin(config, messageRepo)
+  const completionService = new CompletionService(chatService, messageRepo, config, responseStrategy)
 
   fastify.decorate('chatService', chatService)
   fastify.decorate('completionService', completionService)

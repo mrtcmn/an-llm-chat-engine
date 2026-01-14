@@ -20,53 +20,45 @@ export {
 } from "./error-handler.middleware.js";
 export type { ErrorResponse } from "./error-handler.middleware.js";
 export { rateLimitMiddleware } from "./rate-limit.middleware.js";
-
-// Re-import for internal use
-import { appCheckMiddleware } from "./app-check.middleware.js";
-import { authMiddleware } from "./auth.middleware.js";
-import { clientDetectionMiddleware } from "./client-detection.middleware.js";
-import { rateLimitMiddleware } from "./rate-limit.middleware.js";
-
-/**
- * Middleware chain presets for different route groups
- * Order is crucial: appCheck -> rateLimit -> auth -> clientDetection
- *
- * Rate limiting is tiered:
- * - IP-based: 500 req / 15 min (always applied)
- * - User-based: 60 req / min (if authenticated)
- * - User+Route: 20 req / min (if authenticated)
- */
-export const middlewareChains = {
-  /**
-   * Full authenticated chain with all middleware
-   * Use for: /chats, /completions, /messages, etc.
-   */
-  authenticated: [
-    appCheckMiddleware,
-    rateLimitMiddleware,
-    authMiddleware,
-    clientDetectionMiddleware,
-  ] as preHandlerHookHandler[],
-
-  /**
-   * Public endpoints with rate limiting only
-   * Use for: /health, /status, etc.
-   */
-  public: [
-    appCheckMiddleware,
-    rateLimitMiddleware,
-    clientDetectionMiddleware,
-  ] as preHandlerHookHandler[],
-};
+export { loggingMiddleware } from "./logging.middleware.js";
 
 /**
  * Register a middleware chain as preHandler hooks for a route group
  *
+ * Middleware execution order (as registered):
+ * 1. Rate limiter - Prevents abuse and DoS attacks
+ * 2. Firebase App Check - Verifies requests come from legitimate clients
+ * 3. Authentication - Validates JWT tokens and attaches user info
+ * 4. Client detection - Identifies client type (Web/Mobile/Desktop)
+ * 5. Request validation - Validates request schema (handled by Fastify schema)
+ * 6. Error handling - Catches and formats errors (global handler)
+ * 7. Logging - Logs request/response details
+ *
  * @example
  * ```typescript
+ * import { rateLimitMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ *
+ * // For authenticated routes
  * fastify.register(async (instance) => {
- *   registerMiddlewareChain(instance, middlewareChains.authenticated);
+ *   registerMiddlewareChain(instance, [
+ *     rateLimitMiddleware,
+ *     appCheckMiddleware,
+ *     authMiddleware,
+ *     clientDetectionMiddleware,
+ *     loggingMiddleware,
+ *   ]);
  *   instance.get('/chats', async (req, reply) => { ... });
+ * });
+ *
+ * // For public routes
+ * fastify.register(async (instance) => {
+ *   registerMiddlewareChain(instance, [
+ *     rateLimitMiddleware,
+ *     appCheckMiddleware,
+ *     clientDetectionMiddleware,
+ *     loggingMiddleware,
+ *   ]);
+ *   instance.get('/health', async (req, reply) => { ... });
  * });
  * ```
  */
@@ -84,10 +76,18 @@ export function registerMiddlewareChain(
  *
  * @example
  * ```typescript
+ * import { rateLimitMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ *
  * fastify.route({
  *   method: 'GET',
  *   url: '/chats',
- *   ...withMiddleware(middlewareChains.authenticated),
+ *   ...withMiddleware([
+ *     rateLimitMiddleware,
+ *     appCheckMiddleware,
+ *     authMiddleware,
+ *     clientDetectionMiddleware,
+ *     loggingMiddleware,
+ *   ]),
  *   handler: async (req, reply) => { ... }
  * });
  * ```
