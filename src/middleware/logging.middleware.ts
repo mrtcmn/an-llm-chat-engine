@@ -10,7 +10,7 @@ export async function loggingMiddleware(
 ): Promise<void> {
   // Log request info
   // Note: requestId, correlationId, userId, and clientType are automatically added by the request-bound logger
-  req.logger.info("Incoming request", {
+  req.logger.debug("[Middleware] Logging: request received", {
     method: req.method,
     url: req.url,
     ip: req.ip,

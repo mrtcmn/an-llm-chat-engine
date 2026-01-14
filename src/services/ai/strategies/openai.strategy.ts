@@ -155,7 +155,6 @@ export class OpenAIProvider implements AIProvider {
 
     // Stream all parts (text and tool calls)
     for await (const part of result.fullStream) {
-      this.logger.debug('Stream part received', { partType: part.type })
       switch (part.type) {
         case 'step-start':
           // Multi-step process started

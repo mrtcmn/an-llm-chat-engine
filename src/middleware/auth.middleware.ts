@@ -25,9 +25,9 @@ export async function authMiddleware(
     await req.jwtVerify();
 
     // User is automatically attached by @fastify/jwt
-    req.logger.debug("Auth: user authenticated", { userId: (req.user as JwtUserPayload).sub });
+    req.logger.debug("[Middleware] Auth: user authenticated", { userId: (req.user as JwtUserPayload).sub });
   } catch (err) {
-    req.logger.warn("Auth: verification failed", { error: (err as Error).message });
+    req.logger.warn("[Middleware] Auth: verification failed", { error: (err as Error).message });
     reply.status(401).send({
       error: "Unauthorized",
       message: "Invalid or expired token",

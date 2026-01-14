@@ -283,7 +283,7 @@ export function notFoundHandler(
   req: FastifyRequest,
   reply: FastifyReply,
 ): void {
-  req.logger.debug("Route not found", { 
+  req.logger.debug("[Middleware] NotFound: route not found", { 
     url: req.url, 
     method: req.method 
   });

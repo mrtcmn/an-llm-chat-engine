@@ -32,4 +32,9 @@ export async function requestContextMiddleware(
   // Bind response headers for tracing
   reply.header(REQUEST.REQUEST_ID_HEADER, req.id);
   reply.header(REQUEST.CORRELATION_ID_HEADER, correlationId);
+
+  req.logger.debug("[Middleware] RequestContext: context initialized", { 
+    requestId: req.id, 
+    correlationId 
+  });
 }
