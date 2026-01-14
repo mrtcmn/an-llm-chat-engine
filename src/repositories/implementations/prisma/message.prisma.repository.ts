@@ -9,7 +9,7 @@ export class MessagePrismaRepositoryImpl implements IMessageRepository {
     options: FindByChatIdOptions = {}
   ): Promise<Message[]> {
     return this.prisma.message.findMany({
-      where: { chatId },
+      where: { chatId, deletedAt: null },
       orderBy: { createdAt: 'asc' },
       ...(options.limit && { take: options.limit })
     })

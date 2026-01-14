@@ -5,7 +5,9 @@ export class ChatPrismaRepositoryImpl implements IChatRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findById(chatId: string): Promise<Chat | null> {
-    return this.prisma.chat.findUnique({ where: { id: chatId } })
+    return this.prisma.chat.findUnique({ 
+      where: { id: chatId, deletedAt: null } 
+    })
   }
 
   async findByUserId(
@@ -16,13 +18,13 @@ export class ChatPrismaRepositoryImpl implements IChatRepository {
     
     const [chats, total] = await this.prisma.$transaction([
       this.prisma.chat.findMany({
-        where: { userId },
+        where: { userId, deletedAt: null },
         take: limit,
         skip: offset,
         orderBy: { createdAt: 'desc' }
       }),
       this.prisma.chat.count({
-        where: { userId }
+        where: { userId, deletedAt: null }
       })
     ])
 
