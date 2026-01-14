@@ -1,6 +1,17 @@
 import { z } from "zod";
 import 'dotenv/config'
 
+// Helper to properly parse boolean environment variables
+const booleanString = (defaultValue: boolean) => 
+  z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return defaultValue;
+      const normalized = val.toLowerCase().trim();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes';
+    });
+
 export const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url(),
@@ -15,7 +26,7 @@ export const envSchema = z.object({
   
   // Database Health Check
   DB_HEALTH_CHECK_INTERVAL: z.coerce.number().default(30000), // 30 seconds
-  DB_HEALTH_CHECK_ENABLED: z.coerce.boolean().default(true),
+  DB_HEALTH_CHECK_ENABLED: booleanString(true),
 
   // Server
   PORT: z.coerce.number().default(3000),
@@ -30,10 +41,10 @@ export const envSchema = z.object({
   OPENAI_API_KEY: z.string().startsWith("sk-"),
 
   // Feature Flags
-  STREAMING_ENABLED: z.coerce.boolean().default(true),
+  STREAMING_ENABLED: booleanString(true),
   PAGINATION_LIMIT: z.coerce.number().default(20),
-  AI_TOOLS_ENABLED: z.coerce.boolean().default(false),
-  CHAT_HISTORY_ENABLED: z.coerce.boolean().default(true),
+  AI_TOOLS_ENABLED: booleanString(false),
+  CHAT_HISTORY_ENABLED: booleanString(true),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
