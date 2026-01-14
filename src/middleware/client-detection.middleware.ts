@@ -71,7 +71,7 @@ export function clientDetectionMiddleware(
   // Attach to request for downstream middleware/handlers
   req.clientType = clientType;
 
-  req.log.debug({ clientType }, "Client type detected");
+  req.logger.debug("Client type detected", { clientType });
 
   done();
 }

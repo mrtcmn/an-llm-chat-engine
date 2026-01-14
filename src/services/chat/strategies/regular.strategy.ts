@@ -22,19 +22,33 @@ export async function regularStrategy(
   options?: AICompletionOptions
 ): Promise<RegularCompletionResponse> {
   const aiService = AIService.getInstance()
+  const providerName = aiService.getProviderNames()[0]
 
-  req.log.info({ messageCount: messages.length }, 'Starting completion')
+  req.logger.info('Starting completion', {
+    chatId,
+    messageCount: messages.length,
+    provider: providerName,
+    model: options?.model || 'default',
+    toolsEnabled: !!options?.tools,
+  })
 
   const response = await aiService.complete(messages, options)
 
   if (response.toolCalls && response.toolCalls.length > 0) {
-    req.log.info(
-      { toolCount: response.toolCalls.length, tools: response.toolCalls.map(tc => tc.name) },
-      'Tools executed'
-    )
+    req.logger.info('Tools executed', {
+      chatId,
+      provider: providerName,
+      toolCount: response.toolCalls.length,
+      tools: response.toolCalls.map(tc => tc.name)
+    })
   }
 
-  req.log.info({ contentLength: response.content.length }, 'Completion finished')
+  req.logger.info('Completion finished', {
+    chatId,
+    provider: providerName,
+    model: options?.model || 'default',
+    contentLength: response.content.length
+  })
 
   return {
     id: crypto.randomUUID(),

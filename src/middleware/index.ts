@@ -21,27 +21,30 @@ export {
 export type { ErrorResponse } from "./error-handler.middleware.js";
 export { rateLimitMiddleware } from "./rate-limit.middleware.js";
 export { loggingMiddleware } from "./logging.middleware.js";
+export { requestContextMiddleware } from "./request-context.middleware.js";
 
 /**
  * Register a middleware chain as preHandler hooks for a route group
  *
  * Middleware execution order (as registered):
  * 1. Rate limiter - Prevents abuse and DoS attacks
- * 2. Firebase App Check - Verifies requests come from legitimate clients
- * 3. Authentication - Validates JWT tokens and attaches user info
- * 4. Client detection - Identifies client type (Web/Mobile/Desktop)
- * 5. Request validation - Validates request schema (handled by Fastify schema)
- * 6. Error handling - Catches and formats errors (global handler)
- * 7. Logging - Logs request/response details
+ * 2. Request context - Sets request/correlation IDs on response headers
+ * 3. Firebase App Check - Verifies requests come from legitimate clients
+ * 4. Authentication - Validates JWT tokens and attaches user info
+ * 5. Client detection - Identifies client type (Web/Mobile/Desktop)
+ * 6. Request validation - Validates request schema (handled by Fastify schema)
+ * 7. Error handling - Catches and formats errors (global handler)
+ * 8. Logging - Logs request/response details
  *
  * @example
  * ```typescript
- * import { rateLimitMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ * import { rateLimitMiddleware, requestContextMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
  *
  * // For authenticated routes
  * fastify.register(async (instance) => {
  *   registerMiddlewareChain(instance, [
  *     rateLimitMiddleware,
+ *     requestContextMiddleware,
  *     appCheckMiddleware,
  *     authMiddleware,
  *     clientDetectionMiddleware,
@@ -54,6 +57,7 @@ export { loggingMiddleware } from "./logging.middleware.js";
  * fastify.register(async (instance) => {
  *   registerMiddlewareChain(instance, [
  *     rateLimitMiddleware,
+ *     requestContextMiddleware,
  *     appCheckMiddleware,
  *     clientDetectionMiddleware,
  *     loggingMiddleware,
@@ -76,13 +80,14 @@ export function registerMiddlewareChain(
  *
  * @example
  * ```typescript
- * import { rateLimitMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ * import { rateLimitMiddleware, requestContextMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
  *
  * fastify.route({
  *   method: 'GET',
  *   url: '/chats',
  *   ...withMiddleware([
  *     rateLimitMiddleware,
+ *     requestContextMiddleware,
  *     appCheckMiddleware,
  *     authMiddleware,
  *     clientDetectionMiddleware,

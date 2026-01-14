@@ -3,6 +3,7 @@ import { generateText, streamText } from 'ai'
 import type { CoreMessage } from 'ai'
 import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, ToolCall, AIProvider } from '../ai.types'
 import { ToolRegistry } from '../tool-library'
+import { LoggerService } from '@utils/logger'
 
 const DEFAULT_MODEL = 'gpt-4o-mini' // Supports tool calling and streaming
 const DEFAULT_MAX_COMPLETION_TOKENS = 2048
@@ -27,6 +28,7 @@ export class OpenAIProvider implements AIProvider {
   readonly name = 'openai'
   private openai: ReturnType<typeof createOpenAI>
   private toolRegistry: ToolRegistry
+  private logger = LoggerService.getInstance().forService('OpenAIProvider')
 
   constructor(apiKey: string) {
     this.openai = createOpenAI({ apiKey })
@@ -40,30 +42,72 @@ export class OpenAIProvider implements AIProvider {
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): Promise<AIResponse> {
+    const modelName = options.model || DEFAULT_MODEL
     const coreMessages = this.formatMessages(messages)
     const tools = options.tools ? this.toolRegistry.getTools() : undefined
 
-    const result = await generateText({
-      model: this.openai(options.model || DEFAULT_MODEL),
-      messages: coreMessages,
-      maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
-      tools
-    })
+    const startTime = Date.now()
 
-    // Map tool calls to our format
-    const rawToolCalls = result.toolCalls as ToolCallResult[] | undefined
-    const rawToolResults = result.toolResults as ToolResult[] | undefined
+    try {
+      this.logger.info('Starting AI completion', {
+        provider: this.name,
+        model: modelName,
+        messageCount: messages.length,
+        toolsEnabled: !!options.tools,
+        maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+      })
 
-    const toolCalls: ToolCall[] = rawToolCalls?.map(tc => ({
-      name: tc.toolName,
-      arguments: tc.args,
-      result: rawToolResults?.find(tr => tr.toolCallId === tc.toolCallId)?.result
-    })) ?? []
+      const result = await generateText({
+        model: this.openai(modelName),
+        messages: coreMessages,
+        maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+        tools
+      })
 
-    return {
-      content: result.text,
-      role: 'assistant',
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+      const duration = Date.now() - startTime
+
+      // Map tool calls to our format
+      const rawToolCalls = result.toolCalls as ToolCallResult[] | undefined
+      const rawToolResults = result.toolResults as ToolResult[] | undefined
+
+      const toolCalls: ToolCall[] = rawToolCalls?.map(tc => ({
+        name: tc.toolName,
+        arguments: tc.args,
+        result: rawToolResults?.find(tr => tr.toolCallId === tc.toolCallId)?.result
+      })) ?? []
+
+      this.logger.info('AI completion finished', {
+        provider: this.name,
+        model: modelName,
+        duration,
+        usage: {
+          promptTokens: result.usage?.promptTokens,
+          completionTokens: result.usage?.completionTokens,
+          totalTokens: result.usage?.totalTokens,
+        },
+        contentLength: result.text.length,
+        toolCallCount: toolCalls.length,
+        finishReason: result.finishReason,
+      })
+
+      return {
+        content: result.text,
+        role: 'assistant',
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime
+
+      this.logger.error('AI completion failed', error as Error, {
+        provider: this.name,
+        model: modelName,
+        duration,
+        messageCount: messages.length,
+        toolsEnabled: !!options.tools,
+        errorType: error instanceof Error ? error.name : 'Unknown',
+      })
+
+      throw error
     }
   }
 
@@ -75,16 +119,27 @@ export class OpenAIProvider implements AIProvider {
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): AsyncGenerator<StreamChunk> {
+    const modelName = options.model || DEFAULT_MODEL
     const coreMessages = this.formatMessages(messages)
     const tools = options.tools ? this.toolRegistry.getTools() : undefined
+
+    const startTime = Date.now()
+
+    this.logger.info('Starting AI stream', {
+      provider: this.name,
+      model: modelName,
+      messageCount: messages.length,
+      toolsEnabled: !!options.tools,
+      maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+    })
 
     yield { type: 'start' }
 
     const result = streamText({
-      model: this.openai(options.model || DEFAULT_MODEL),
+      model: this.openai(modelName),
       messages: coreMessages,
       maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
-      
+
       tools,
       maxSteps: 5,
       providerOptions: {
@@ -96,10 +151,11 @@ export class OpenAIProvider implements AIProvider {
 
     // Track tool calls for results later
     const toolCallsMap = new Map<string, { name: string; args: any }>()
+    let totalContentLength = 0
 
     // Stream all parts (text and tool calls)
     for await (const part of result.fullStream) {
-      console.log(part)
+      this.logger.debug('Stream part received', { partType: part.type })
       switch (part.type) {
         case 'step-start':
           // Multi-step process started
@@ -128,6 +184,7 @@ export class OpenAIProvider implements AIProvider {
 
         case 'text-delta':
           // Stream text content as it arrives
+          totalContentLength += part.textDelta.length
           yield {
             type: 'content',
             content: part.textDelta
@@ -176,10 +233,20 @@ export class OpenAIProvider implements AIProvider {
         case 'error':
           // Error during streaming
           if ('error' in part) {
+            const duration = Date.now() - startTime
+            const errorMsg = typeof part.error === 'string' ? part.error :
+                           (part.error as any)?.message || 'Unknown streaming error'
+
+            this.logger.error('AI stream error', part.error as Error, {
+              provider: this.name,
+              model: modelName,
+              duration,
+              contentLengthBeforeError: totalContentLength,
+            })
+
             yield {
               type: 'error',
-              error: typeof part.error === 'string' ? part.error : 
-                     (part.error as any)?.message || 'Unknown streaming error'
+              error: errorMsg
             }
           }
           break
@@ -217,6 +284,16 @@ export class OpenAIProvider implements AIProvider {
         // Tool results might not be available in all cases
       }
     }
+
+    const duration = Date.now() - startTime
+
+    this.logger.info('AI stream finished', {
+      provider: this.name,
+      model: modelName,
+      duration,
+      contentLength: totalContentLength,
+      toolCallCount: toolCallsMap.size,
+    })
 
     yield { type: 'done' }
   }

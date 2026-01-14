@@ -17,6 +17,16 @@ export async function streamingStrategy(
   options?: AICompletionOptions
 ): Promise<{ content: string; toolCalls?: Array<{ name: string; arguments: unknown; result: unknown }> }> {
   const aiService = AIService.getInstance()
+  const providerName = aiService.getProviderNames()[0]
+  const startTime = Date.now()
+
+  req.logger.info('Starting streaming completion', {
+    chatId,
+    messageCount: messages.length,
+    provider: providerName,
+    model: options?.model || 'default',
+    toolsEnabled: !!options?.tools,
+  })
 
   reply.raw.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -42,48 +52,64 @@ export async function streamingStrategy(
       }
 
       if (chunk.type === 'step_start') {
-        req.log.info({ stepType: chunk.stepInfo?.stepType }, 'Step started')
+        req.logger.info('Step started', { stepType: chunk.stepInfo?.stepType })
       }
 
       if (chunk.type === 'step_finish') {
-        req.log.info(
-          {
-            stepType: chunk.stepInfo?.stepType,
-            finishReason: chunk.stepInfo?.finishReason,
-            usage: chunk.stepInfo?.usage
-          },
-          'Step finished'
-        )
+        req.logger.info('Step finished', {
+          stepType: chunk.stepInfo?.stepType,
+          finishReason: chunk.stepInfo?.finishReason,
+          usage: chunk.stepInfo?.usage
+        })
       }
 
       if (chunk.type === 'reasoning' && chunk.reasoning) {
-        req.log.info({ reasoning: chunk.reasoning }, 'Reasoning delta')
+        req.logger.info('Reasoning delta', { reasoning: chunk.reasoning })
       }
 
       if (chunk.type === 'tool_result') {
-        req.log.info(
-          { tool: chunk.toolCall?.name, result: chunk.toolCall?.result },
-          'Tool executed'
-        )
+        req.logger.info('Tool executed', {
+          chatId,
+          provider: providerName,
+          tool: chunk.toolCall?.name,
+          result: chunk.toolCall?.result
+        })
       }
 
       sendSSE(reply, chunk)
     }
 
-    req.log.info({ contentLength: fullContent.length }, 'Stream completed')
+    const duration = Date.now() - startTime
+
+    req.logger.info('Stream completed', {
+      chatId,
+      provider: providerName,
+      model: options?.model || 'default',
+      contentLength: fullContent.length,
+      toolCallCount: toolCalls.length,
+      duration,
+    })
     
     return {
       content: fullContent,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     }
   } catch (error) {
-    req.log.error({ error }, 'Stream error')
+    const duration = Date.now() - startTime
+
+    req.logger.error('Stream error', error instanceof Error ? error : undefined, {
+      chatId,
+      provider: providerName,
+      model: options?.model || 'default',
+      duration,
+      contentLengthBeforeError: fullContent.length,
+    })
 
     sendSSE(reply, {
       type: 'error',
       error: error instanceof Error ? error.message : 'Unknown streaming error'
     })
-    
+
     throw error
   } finally {
     reply.raw.end()

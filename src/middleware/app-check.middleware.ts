@@ -14,9 +14,9 @@ export async function appCheckMiddleware(
   // const decodedToken = await getAppCheck().verifyToken(appCheckToken);
 
   if (appCheckToken) {
-    req.log.debug({ hasToken: true }, "App Check: token present (mocked verification)");
+    req.logger.debug("App Check: token present (mocked verification)", { hasToken: true });
   } else {
-    req.log.debug({ hasToken: false }, "App Check: no token (mocked - passing)");
+    req.logger.debug("App Check: no token (mocked - passing)", { hasToken: false });
   }
 
   // Currently mocked - always passes

@@ -102,7 +102,7 @@ export async function rateLimitMiddleware(
   const ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
 
   if (!ipResult.allowed) {
-    req.log.warn({ ip }, "IP rate limit exceeded");
+    req.logger.warn("IP rate limit exceeded", { ip });
     throw AppError.tooManyRequests("Too many requests from this IP");
   }
 
@@ -115,7 +115,7 @@ export async function rateLimitMiddleware(
     const userResult = store.check(userKey, LIMITS.user.limit, LIMITS.user.windowMs);
 
     if (!userResult.allowed) {
-      req.log.warn({ userId }, "User rate limit exceeded");
+      req.logger.warn("User rate limit exceeded", { userId });
       throw AppError.tooManyRequests("Too many requests");
     }
 
@@ -129,7 +129,7 @@ export async function rateLimitMiddleware(
     reply.header("X-RateLimit-Reset", Math.ceil(routeResult.resetAt / 1000));
 
     if (!routeResult.allowed) {
-      req.log.warn({ userId, route: routeHash }, "Route rate limit exceeded");
+      req.logger.warn("Route rate limit exceeded", { userId, route: routeHash });
       throw AppError.tooManyRequests("Too many requests to this endpoint");
     }
   } else {

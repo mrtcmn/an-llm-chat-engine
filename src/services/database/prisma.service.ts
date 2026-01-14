@@ -3,11 +3,13 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import type { DatabaseStrategy, PoolStats } from "./database.strategy";
 import type { ConfigService } from "@config";
+import { LoggerService } from "@utils/logger";
 
 export class PrismaService implements DatabaseStrategy {
   public client: PrismaClient;
   private pool: pg.Pool;
   private config: ConfigService;
+  private logger = LoggerService.getInstance().forService('PrismaService');
 
   constructor(config: ConfigService) {
     this.config = config;
@@ -38,15 +40,13 @@ export class PrismaService implements DatabaseStrategy {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await this.client.$connect();
-        console.log(
-          `[PrismaService] Connected successfully on attempt ${attempt + 1}`,
-        );
+        this.logger.info('Connected successfully', { attempt: attempt + 1 });
         return;
       } catch (error) {
-        console.error(
-          `[PrismaService] Connection attempt ${attempt + 1}/${maxRetries} failed:`,
-          error,
-        );
+        this.logger.error('Connection attempt failed', error as Error, {
+          attempt: attempt + 1,
+          maxRetries,
+        });
 
         if (attempt === maxRetries - 1) {
           throw new Error(
@@ -56,7 +56,7 @@ export class PrismaService implements DatabaseStrategy {
         }
 
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`[PrismaService] Retrying in ${delay}ms...`);
+        this.logger.info('Retrying connection', { delay, attempt: attempt + 1 });
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -69,14 +69,14 @@ export class PrismaService implements DatabaseStrategy {
   async disconnect(): Promise<void> {
     await this.client.$disconnect();
     await this.pool.end();
-    console.log("[PrismaService] Database disconnected");
+    this.logger.info('Database disconnected');
   }
 
   async reconnect(): Promise<void> {
-    console.log("[PrismaService] Initiating reconnection...");
+    this.logger.info('Initiating reconnection');
     await this.disconnect();
     await this.connectWithRetry();
-    console.log("[PrismaService] Reconnection successful");
+    this.logger.info('Reconnection successful');
   }
 
   async healthCheck(): Promise<boolean> {

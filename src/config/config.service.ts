@@ -3,6 +3,7 @@ import { FeatureFlags, defaultFeatureFlags } from './feature-flags.config'
 import { watch, FSWatcher } from 'fs'
 import { resolve } from 'path'
 import { config as reloadDotenv } from 'dotenv'
+import { LoggerService } from '@utils/logger'
 
 export class ConfigService {
   private static instance: ConfigService
@@ -11,6 +12,7 @@ export class ConfigService {
   private watcher: FSWatcher | null = null
   private reloadDebounceTimer: NodeJS.Timeout | null = null
   private readonly envPath: string
+  private logger = LoggerService.getInstance().forService('ConfigService')
 
   private constructor() {
     this.envPath = resolve(process.cwd(), '.env')
@@ -44,12 +46,12 @@ export class ConfigService {
       })
 
       this.watcher.on('error', (error) => {
-        console.error('[ConfigService] File watcher error:', error.message)
+        this.logger.error('File watcher error', error)
       })
 
-      console.log('[ConfigService] Watching .env file for changes:', this.envPath)
+      this.logger.info('Watching .env file for changes', { envPath: this.envPath })
     } catch (error) {
-      console.warn('[ConfigService] Could not watch .env file:', (error as Error).message)
+      this.logger.warn('Could not watch .env file', { error: (error as Error).message })
     }
   }
 
@@ -66,21 +68,21 @@ export class ConfigService {
 
   private reload(): void {
     try {
-      console.log('[ConfigService] Reloading configuration from .env file...')
-      
+      this.logger.info('Reloading configuration from .env file')
+
       // Reload .env file into process.env
       reloadDotenv({ path: this.envPath, override: true })
-      
+
       // Revalidate environment variables
       const newConfig = validateEnv()
-      
+
       // Update config and feature flags
       this.config = newConfig
       this.featureFlags = this.loadFeatureFlags()
-      
-      console.log('[ConfigService] Configuration reloaded successfully')
+
+      this.logger.info('Configuration reloaded successfully')
     } catch (error) {
-      console.error('[ConfigService] Failed to reload configuration:', (error as Error).message)
+      this.logger.error('Failed to reload configuration', error as Error)
       // Keep the old configuration if reload fails
     }
   }
@@ -99,9 +101,9 @@ export class ConfigService {
     if (this.watcher) {
       this.watcher.close()
       this.watcher = null
-      console.log('[ConfigService] Stopped watching .env file')
+      this.logger.info('Stopped watching .env file')
     }
-    
+
     if (this.reloadDebounceTimer) {
       clearTimeout(this.reloadDebounceTimer)
       this.reloadDebounceTimer = null

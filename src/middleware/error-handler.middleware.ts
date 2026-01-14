@@ -22,7 +22,6 @@ export interface ErrorContext {
   operation?: string;
   
   // Request context
-  requestId?: string;
   clientType?: string;
   
   // Error specifics
@@ -228,20 +227,15 @@ export function errorHandler(
     };
   }
 
-  // Add request ID if available (for tracing)
-  if (req.id) {
-    logContext.requestId = req.id;
-  }
-
   // Log with appropriate level and human-readable message
   const logMessage = error instanceof AppError && error.context?.operation
     ? `Error in ${error.context.operation}: ${error.message}`
     : error.message;
 
   if (statusCode >= 500) {
-    req.log.error(logContext, logMessage);
+    req.logger.error(logMessage, error, logContext);
   } else if (statusCode >= 400) {
-    req.log.warn(logContext, logMessage);
+    req.logger.warn(logMessage, logContext);
   }
 
   // Build error response (hide sensitive details from clients)
@@ -289,7 +283,10 @@ export function notFoundHandler(
   req: FastifyRequest,
   reply: FastifyReply,
 ): void {
-  req.log.debug({ url: req.url, method: req.method }, "Route not found");
+  req.logger.debug("Route not found", { 
+    url: req.url, 
+    method: req.method 
+  });
 
   reply.status(404).send({
     error: "Not Found",

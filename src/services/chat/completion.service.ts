@@ -25,6 +25,20 @@ export class CompletionService {
       throw AppError.badRequest('Message cannot be empty')
     }
 
+    // Get feature flags
+    const streamingEnabled = this.config.getFeatureFlag('streamingEnabled')
+    const aiToolsEnabled = this.config.getFeatureFlag('aiToolsEnabled')
+    const chatHistoryEnabled = this.config.getFeatureFlag('chatHistoryEnabled')
+
+    req.logger.info('Processing completion request', {
+      chatId,
+      featureFlags: {
+        streamingEnabled,
+        aiToolsEnabled,
+        chatHistoryEnabled,
+      },
+    })
+
     await this.chatService.getOrCreateChat(chatId, userId)
 
     await this.messageRepo.create({
@@ -34,7 +48,7 @@ export class CompletionService {
     })
 
     const history = await this.messageRepo.findByChatId(chatId)
-    
+
     const messages: AIMessage[] = [
       {
         role: 'system',
@@ -47,7 +61,7 @@ export class CompletionService {
     ]
 
     const aiOptions: AICompletionOptions = {
-      tools: this.config.getFeatureFlag('aiToolsEnabled')
+      tools: aiToolsEnabled
     }
 
     return this.responseStrategy.execute(req, reply, chatId, messages, aiOptions)

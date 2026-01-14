@@ -1,34 +1,35 @@
 import Fastify from "fastify";
+import { randomUUID } from "crypto";
 import { configPlugin } from "@config";
+import { loggerPlugin } from "@services/logger";
 import { databasePlugin } from "@services/database";
 import { aiPlugin } from "@services/ai";
 import { chatServicePlugin } from "@services/chat";
 import { jwtPlugin } from "@services/auth";
 import { swaggerPlugin } from "@services/docs";
 import { routerPlugin } from "@routes";
+import { REQUEST } from "@config/constants";
 
-const isDevelopment = process.env.NODE_ENV !== "production";
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const fastify = Fastify({
-  logger: isDevelopment
-    ? {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            colorize: true,
-            translateTime: "HH:MM:ss Z",
-            ignore: "pid,hostname",
-          },
-        },
-      }
-    : true, // Structured JSON output for production
+  genReqId: (req) => {
+    // Use incoming x-request-id header if provided, otherwise generate UUID
+    return (req.headers[REQUEST.REQUEST_ID_HEADER] as string) || `${process.env.APP_NAME}_${randomUUID()}`;
+  },
+
+  disableRequestLogging: true, // Disable default request logging - we'll use custom onResponse hook
+
 });
 
 // Register plugins in dependency order
 // 1. Config plugin (all other plugins depend on it)
 fastify.register(configPlugin);
 
-// 2. Database plugin (depends on config)
+// 2. Logger plugin (depends on config, provides structured logging)
+fastify.register(loggerPlugin);
+
+// 3. Database plugin (depends on config)
 fastify.register(databasePlugin);
 
 // 4. AI plugin (depends on config, provides AI service)
@@ -45,6 +46,28 @@ fastify.register(swaggerPlugin);
 
 // 8. Router plugin (depends on jwt, database, and chat services, registers all routes)
 fastify.register(routerPlugin);
+
+// Add custom response logging hook - log at appropriate level based on status code
+fastify.addHook('onResponse', async (req, reply) => {
+  const responseTime = reply.elapsedTime;
+  const statusCode = reply.statusCode;
+
+  const logData = {
+    method: req.method,
+    url: req.url,
+    statusCode,
+    responseTime,
+  };
+
+  // Log at appropriate level based on status code
+  if (statusCode >= 500) {
+    req.logger.error('Request completed with server error', undefined, logData);
+  } else if (statusCode >= 400) {
+    req.logger.warn('Request completed with client error', logData);
+  } else {
+    req.logger.info('Request completed successfully', logData);
+  }
+});
 
 const start = async () => {
   try {

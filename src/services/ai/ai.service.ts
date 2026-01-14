@@ -1,4 +1,5 @@
 import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, AIProvider } from './ai.types'
+import { LoggerService } from '@utils/logger'
 
 /**
  * AI Service
@@ -8,12 +9,17 @@ import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, AIProvide
 export class AIService {
   private static instance: AIService
   private providers: AIProvider[]
+  private logger = LoggerService.getInstance().forService('AIService')
 
   constructor(providers: AIProvider[]) {
     if (providers.length === 0) {
       throw new Error('AIService requires at least one provider')
     }
     this.providers = providers
+    this.logger.info('AIService initialized', {
+      providerCount: providers.length,
+      providers: providers.map(p => p.name),
+    })
   }
 
   /**
@@ -65,7 +71,17 @@ export class AIService {
     options: AICompletionOptions = {}
   ): Promise<AIResponse> {
     const provider = this.getPrimaryProvider()
-    return provider.complete(messages, options)
+
+    try {
+      return await provider.complete(messages, options)
+    } catch (error) {
+      this.logger.error('AI completion failed at service level', error as Error, {
+        provider: provider.name,
+        model: options.model || 'default',
+        messageCount: messages.length,
+      })
+      throw error
+    }
   }
 
   /**
@@ -76,6 +92,16 @@ export class AIService {
     options: AICompletionOptions = {}
   ): AsyncGenerator<StreamChunk> {
     const provider = this.getPrimaryProvider()
-    yield* provider.stream(messages, options)
+
+    try {
+      yield* provider.stream(messages, options)
+    } catch (error) {
+      this.logger.error('AI stream failed at service level', error as Error, {
+        provider: provider.name,
+        model: options.model || 'default',
+        messageCount: messages.length,
+      })
+      throw error
+    }
   }
 }
