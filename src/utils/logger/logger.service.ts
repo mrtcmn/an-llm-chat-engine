@@ -96,6 +96,13 @@ export class LoggerService {
       bindings.clientType = req.clientType
     }
 
+    if (req.appCheck?.verified && req.appCheck.appId) {
+      bindings.firebase = {
+        appId: req.appCheck.appId,
+        appName: req.appCheck.appName,
+      }
+    }
+
     const childLogger = this.baseLogger.child(bindings)
     return new BoundLoggerImpl(childLogger)
   }

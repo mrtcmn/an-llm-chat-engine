@@ -1,12 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   registerMiddlewareChain,
-  rateLimitMiddleware,
-  appCheckMiddleware,
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
   routeSchemas,
+  AppError,
 } from "@middleware";
 
 /**
@@ -35,8 +34,6 @@ interface ListChatsRequest {
 export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
   // Apply authenticated middleware chain to all routes in this plugin in exact order
   registerMiddlewareChain(fastify, [
-    rateLimitMiddleware,
-    appCheckMiddleware,
     authMiddleware,
     clientDetectionMiddleware,
     loggingMiddleware,
@@ -49,6 +46,8 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
     async (req: FastifyRequest<ListChatsRequest>, reply: FastifyReply) => {
       const userId = req.user!.sub;
       const { limit, offset, page } = req.query;
+
+      throw AppError.internal("Internal server error");
       return fastify.chatService.listChats(userId, { limit, offset, page });
     },
   );

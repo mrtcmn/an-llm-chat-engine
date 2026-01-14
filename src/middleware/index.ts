@@ -1,7 +1,6 @@
 import type { FastifyInstance, preHandlerHookHandler } from "fastify";
 
 // Export all middleware
-export { appCheckMiddleware } from "./app-check.middleware.js";
 export { authMiddleware } from "./auth.middleware.js";
 export type { JwtUserPayload } from "./auth.middleware.js";
 export { clientDetectionMiddleware } from "./client-detection.middleware.js";
@@ -27,25 +26,24 @@ export { requestContextMiddleware } from "./request-context.middleware.js";
  * Register a middleware chain as preHandler hooks for a route group
  *
  * Middleware execution order (as registered):
- * 1. Rate limiter - Prevents abuse and DoS attacks
- * 2. Request context - Sets request/correlation IDs on response headers
- * 3. Firebase App Check - Verifies requests come from legitimate clients
- * 4. Authentication - Validates JWT tokens and attaches user info
- * 5. Client detection - Identifies client type (Web/Mobile/Desktop)
- * 6. Request validation - Validates request schema (handled by Fastify schema)
- * 7. Error handling - Catches and formats errors (global handler)
- * 8. Logging - Logs request/response details
+ * 1. Authentication - Validates JWT tokens and attaches user info
+ * 2. Client detection - Identifies client type (Web/Mobile/Desktop)
+ * 3. Request validation - Validates request schema (handled by Fastify schema)
+ * 4. Error handling - Catches and formats errors (global handler)
+ * 5. Logging - Logs request/response details
+ * 
+ * Global middleware (registered at app level):
+ * - Request context - Sets request/correlation IDs (via plugin hook)
+ * - Rate limiter - Checks IP-based rate limits early, blocks restricted IPs before route processing (via global hook)
+ * - Firebase App Check - Verifies requests from legitimate clients (via plugin hook)
  *
  * @example
  * ```typescript
- * import { rateLimitMiddleware, requestContextMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ * import { authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
  *
  * // For authenticated routes
  * fastify.register(async (instance) => {
  *   registerMiddlewareChain(instance, [
- *     rateLimitMiddleware,
- *     requestContextMiddleware,
- *     appCheckMiddleware,
  *     authMiddleware,
  *     clientDetectionMiddleware,
  *     loggingMiddleware,
@@ -56,9 +54,6 @@ export { requestContextMiddleware } from "./request-context.middleware.js";
  * // For public routes
  * fastify.register(async (instance) => {
  *   registerMiddlewareChain(instance, [
- *     rateLimitMiddleware,
- *     requestContextMiddleware,
- *     appCheckMiddleware,
  *     clientDetectionMiddleware,
  *     loggingMiddleware,
  *   ]);
@@ -80,15 +75,12 @@ export function registerMiddlewareChain(
  *
  * @example
  * ```typescript
- * import { rateLimitMiddleware, requestContextMiddleware, appCheckMiddleware, authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
+ * import { authMiddleware, clientDetectionMiddleware, loggingMiddleware } from '@middleware';
  *
  * fastify.route({
  *   method: 'GET',
  *   url: '/chats',
  *   ...withMiddleware([
- *     rateLimitMiddleware,
- *     requestContextMiddleware,
- *     appCheckMiddleware,
  *     authMiddleware,
  *     clientDetectionMiddleware,
  *     loggingMiddleware,

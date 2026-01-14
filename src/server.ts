@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { randomUUID } from "crypto";
 import { configPlugin } from "@config";
 import { loggerPlugin } from "@services/logger";
+import { appCheckPlugin } from "@services/app-check";
 import { databasePlugin } from "@services/database";
 import { aiPlugin } from "@services/ai";
 import { chatServicePlugin } from "@services/chat";
@@ -9,6 +10,7 @@ import { jwtPlugin } from "@services/auth";
 import { swaggerPlugin } from "@services/docs";
 import { routerPlugin } from "@routes";
 import { REQUEST } from "@config/constants";
+import { requestContextMiddleware, rateLimitMiddleware } from "@middleware";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
@@ -23,51 +25,38 @@ const fastify = Fastify({
 });
 
 // Register plugins in dependency order
-// 1. Config plugin (all other plugins depend on it)
+// Config plugin (all other plugins depend on it)
 fastify.register(configPlugin);
 
-// 2. Logger plugin (depends on config, provides structured logging)
+// App Check plugin (depends on logger, globally validates Firebase App Check tokens)
+fastify.register(appCheckPlugin);
+
+// Logger plugin (depends on config, provides structured logging)
 fastify.register(loggerPlugin);
 
-// 3. Database plugin (depends on config)
+// Request context middleware (globally sets correlation ID for all requests)
+fastify.addHook("preHandler", requestContextMiddleware);
+
+// Rate limit middleware (globally checks IP-based rate limits, blocks restricted IPs early)
+fastify.addHook("preHandler", rateLimitMiddleware);
+
+// Database plugin (depends on config)
 fastify.register(databasePlugin);
 
-// 4. AI plugin (depends on config, provides AI service)
+// AI plugin (depends on config, provides AI service)
 fastify.register(aiPlugin);
 
-// 5. Chat service plugin (depends on config, database)
+// Chat service plugin (depends on config, database)
 fastify.register(chatServicePlugin);
 
-// 6. JWT plugin (depends on config, provides auth infrastructure)
+// JWT plugin (depends on config, provides auth infrastructure)
 fastify.register(jwtPlugin);
 
-// 7. Swagger plugin (depends on config, provides API documentation)
+// Swagger plugin (depends on config, provides API documentation)
 fastify.register(swaggerPlugin);
 
-// 8. Router plugin (depends on jwt, database, and chat services, registers all routes)
+// Router plugin (depends on jwt, database, and chat services, registers all routes)
 fastify.register(routerPlugin);
-
-// Add custom response logging hook - log at appropriate level based on status code
-fastify.addHook('onResponse', async (req, reply) => {
-  const responseTime = reply.elapsedTime;
-  const statusCode = reply.statusCode;
-
-  const logData = {
-    method: req.method,
-    url: req.url,
-    statusCode,
-    responseTime,
-  };
-
-  // Log at appropriate level based on status code
-  if (statusCode >= 500) {
-    req.logger.error('Request completed with server error', undefined, logData);
-  } else if (statusCode >= 400) {
-    req.logger.warn('Request completed with client error', logData);
-  } else {
-    req.logger.info('Request completed successfully', logData);
-  }
-});
 
 const start = async () => {
   try {

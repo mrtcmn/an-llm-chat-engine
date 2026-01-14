@@ -1,8 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   registerMiddlewareChain,
-  rateLimitMiddleware,
-  appCheckMiddleware,
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
@@ -23,8 +21,6 @@ interface CreateCompletionRequest {
  */
 export async function completionsRoutes(fastify: FastifyInstance): Promise<void> {
   registerMiddlewareChain(fastify, [
-    rateLimitMiddleware,
-    appCheckMiddleware,
     authMiddleware,
     clientDetectionMiddleware,
     loggingMiddleware,

@@ -1,8 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
   registerMiddlewareChain,
-  rateLimitMiddleware,
-  appCheckMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
 } from "@middleware";
@@ -14,8 +12,6 @@ import {
 export async function authRoutes(fastify: FastifyInstance): Promise<void> {
   // Apply public middleware chain (no auth required) in exact order
   registerMiddlewareChain(fastify, [
-    rateLimitMiddleware,
-    appCheckMiddleware,
     clientDetectionMiddleware,
     loggingMiddleware,
   ]);
