@@ -112,7 +112,13 @@ describe('ResponseStrategyPlugin', () => {
 
     it('should save assistant message after regular response', async () => {
       mockConfig.getFeatureFlag.mockReturnValue(false)
-      vi.mocked(regularStrategy).mockResolvedValue({ content: 'Regular content', role: 'assistant' })
+      vi.mocked(regularStrategy).mockResolvedValue({ 
+        id: 'msg-123',
+        chatId: 'chat-123',
+        content: 'Regular content', 
+        role: 'assistant',
+        createdAt: '2024-01-01T00:00:00.000Z'
+      })
 
       await responseStrategy.execute(
         mockReq as any,
@@ -145,7 +151,13 @@ describe('ResponseStrategyPlugin', () => {
 
     it('should return response for regular strategy', async () => {
       mockConfig.getFeatureFlag.mockReturnValue(false)
-      const mockResponse = { content: 'Test', role: 'assistant' as const }
+      const mockResponse = { 
+        id: 'msg-456',
+        chatId: 'chat-123',
+        content: 'Test', 
+        role: 'assistant' as const,
+        createdAt: '2024-01-01T00:00:00.000Z'
+      }
       vi.mocked(regularStrategy).mockResolvedValue(mockResponse)
 
       const result = await responseStrategy.execute(

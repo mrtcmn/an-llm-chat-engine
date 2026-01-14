@@ -11,7 +11,7 @@ export interface JwtUserPayload {
 }
 
 export interface MockFastifyRequest {
-  user: JwtUserPayload
+  user: JwtUserPayload | undefined
   log: MockBoundLogger
   logger: MockBoundLogger
   correlationId: string
@@ -25,6 +25,7 @@ export interface MockFastifyRequest {
   body: unknown
   ip: string
   jwtVerify: ReturnType<typeof vi.fn>
+  routeOptions?: { url: string }
 }
 
 export interface MockFastifyReply {
@@ -69,6 +70,7 @@ export function createMockRequest(overrides?: Partial<MockFastifyRequest>): Mock
       email: 'test@example.com',
       role: 'user'
     }),
+    routeOptions: { url: '/api/test' },
     ...overrides
   }
 }
