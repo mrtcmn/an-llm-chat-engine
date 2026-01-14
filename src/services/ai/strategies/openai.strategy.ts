@@ -1,214 +1,123 @@
-import OpenAI from 'openai'
-import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions'
+import { createOpenAI } from '@ai-sdk/openai'
+import { generateText, streamText } from 'ai'
+import type { CoreMessage } from 'ai'
 import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, ToolCall, AIProvider } from '../ai.types'
 import { ToolRegistry } from '../tool-library'
 
-const DEFAULT_MODEL = 'gpt-4.1'
-const DEFAULT_TEMPERATURE = 0.7
-const DEFAULT_MAX_TOKENS = 2048
+const DEFAULT_MODEL = 'gpt-5-mini-2025-08-07'
+const DEFAULT_MAX_COMPLETION_TOKENS = 2048
+
+interface ToolCallResult {
+  toolCallId: string
+  toolName: string
+  args: Record<string, unknown>
+}
+
+interface ToolResult {
+  toolCallId: string
+  toolName: string
+  result: unknown
+}
 
 /**
  * OpenAI Provider
- * Implements AIProvider interface using OpenAI's API with support for
- * regular and streaming responses, plus function calling
+ * Implements AIProvider interface using Vercel AI SDK
  */
 export class OpenAIProvider implements AIProvider {
   readonly name = 'openai'
-  private client: OpenAI
+  private openai: ReturnType<typeof createOpenAI>
   private toolRegistry: ToolRegistry
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey })
+    this.openai = createOpenAI({ apiKey })
     this.toolRegistry = new ToolRegistry()
   }
 
   /**
-   * Non-streaming completion
+   * Non-streaming completion using AI SDK generateText
    */
   async complete(
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): Promise<AIResponse> {
-    const openAIMessages = this.formatMessages(messages)
-    const tools = options.tools ? this.toolRegistry.getOpenAIToolDefinitions() : undefined
+    const coreMessages = this.formatMessages(messages)
+    const tools = options.tools ? this.toolRegistry.getTools() : undefined
 
-    const completion = await this.client.chat.completions.create({
-      model: options.model || DEFAULT_MODEL,
-      messages: openAIMessages,
-      temperature: options.temperature ?? DEFAULT_TEMPERATURE,
-      max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
-      tools: tools as ChatCompletionTool[] | undefined
+    const result = await generateText({
+      model: this.openai(options.model || DEFAULT_MODEL),
+      messages: coreMessages,
+      maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+      tools
     })
 
-    const choice = completion.choices[0]
-    if (!choice) {
-      throw new Error('No completion choice returned')
-    }
+    // Map tool calls to our format
+    const rawToolCalls = result.toolCalls as ToolCallResult[] | undefined
+    const rawToolResults = result.toolResults as ToolResult[] | undefined
 
-    // Handle tool calls if present
-    const toolCalls: ToolCall[] = []
-    if (choice.message.tool_calls && choice.message.tool_calls.length > 0) {
-      for (const toolCall of choice.message.tool_calls) {
-        // Only handle function-type tool calls
-        if (toolCall.type !== 'function') continue
-
-        const args = JSON.parse(toolCall.function.arguments)
-        const result = await this.toolRegistry.execute(toolCall.function.name, args)
-        toolCalls.push({
-          name: toolCall.function.name,
-          arguments: args,
-          result
-        })
-      }
-
-      // If tools were called, make a follow-up call with tool results
-      if (toolCalls.length > 0) {
-        return this.completeWithToolResults(openAIMessages, choice.message, toolCalls, options)
-      }
-    }
+    const toolCalls: ToolCall[] = rawToolCalls?.map(tc => ({
+      name: tc.toolName,
+      arguments: tc.args,
+      result: rawToolResults?.find(tr => tr.toolCallId === tc.toolCallId)?.result
+    })) ?? []
 
     return {
-      content: choice.message.content || '',
+      content: result.text,
       role: 'assistant',
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined
     }
   }
 
   /**
-   * Continue completion after tool execution
-   */
-  private async completeWithToolResults(
-    originalMessages: ChatCompletionMessageParam[],
-    assistantMessage: OpenAI.Chat.Completions.ChatCompletionMessage,
-    toolCalls: ToolCall[],
-    options: AICompletionOptions
-  ): Promise<AIResponse> {
-    // Build messages with tool results
-    const messagesWithTools: ChatCompletionMessageParam[] = [
-      ...originalMessages,
-      assistantMessage,
-      ...toolCalls.map((tc, index) => ({
-        role: 'tool' as const,
-        tool_call_id: assistantMessage.tool_calls![index].id,
-        content: JSON.stringify(tc.result)
-      }))
-    ]
-
-    const followUp = await this.client.chat.completions.create({
-      model: options.model || DEFAULT_MODEL,
-      messages: messagesWithTools,
-      temperature: options.temperature ?? DEFAULT_TEMPERATURE,
-      max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS
-    })
-
-    const followUpChoice = followUp.choices[0]
-    return {
-      content: followUpChoice?.message.content || '',
-      role: 'assistant',
-      toolCalls
-    }
-  }
-
-  /**
-   * Streaming completion with SSE events
+   * Streaming completion using AI SDK streamText
    */
   async *stream(
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): AsyncGenerator<StreamChunk> {
-    const openAIMessages = this.formatMessages(messages)
-    const tools = options.tools ? this.toolRegistry.getOpenAIToolDefinitions() : undefined
+    const coreMessages = this.formatMessages(messages)
+    const tools = options.tools ? this.toolRegistry.getTools() : undefined
 
     yield { type: 'start' }
 
-    const stream = await this.client.chat.completions.create({
-      model: options.model || DEFAULT_MODEL,
-      messages: openAIMessages,
-      temperature: options.temperature ?? DEFAULT_TEMPERATURE,
-      max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
-      tools: tools as ChatCompletionTool[] | undefined,
-      stream: true
+    const result = streamText({
+      model: this.openai(options.model || DEFAULT_MODEL),
+      messages: coreMessages,
+      maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
+      tools
     })
 
-    // Track tool calls being built across chunks
-    const pendingToolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map()
-    let fullContent = ''
-
-    for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta
-
-      // Handle content streaming
-      if (delta?.content) {
-        fullContent += delta.content
-        yield {
-          type: 'content',
-          content: delta.content
-        }
-      }
-
-      // Handle tool call streaming
-      if (delta?.tool_calls) {
-        for (const toolCallDelta of delta.tool_calls) {
-          const index = toolCallDelta.index
-
-          if (!pendingToolCalls.has(index)) {
-            pendingToolCalls.set(index, {
-              id: toolCallDelta.id || '',
-              name: toolCallDelta.function?.name || '',
-              arguments: ''
-            })
-          }
-
-          const pending = pendingToolCalls.get(index)!
-
-          if (toolCallDelta.id) {
-            pending.id = toolCallDelta.id
-          }
-          if (toolCallDelta.function?.name) {
-            pending.name = toolCallDelta.function.name
-            yield {
-              type: 'tool_call',
-              toolCall: { name: pending.name }
-            }
-          }
-          if (toolCallDelta.function?.arguments) {
-            pending.arguments += toolCallDelta.function.arguments
-          }
-        }
+    // Stream text chunks
+    for await (const chunk of result.textStream) {
+      yield {
+        type: 'content',
+        content: chunk
       }
     }
 
-    // Execute any pending tool calls
-    if (pendingToolCalls.size > 0) {
-      const toolResults: ToolCall[] = []
+    // Get tool calls and results (they are promises)
+    const rawToolCalls = (await result.toolCalls) as ToolCallResult[]
+    const rawToolResults = (await result.toolResults) as ToolResult[]
 
-      for (const [, pending] of pendingToolCalls) {
-        try {
-          const args = JSON.parse(pending.arguments)
-          const result = await this.toolRegistry.execute(pending.name, args)
+    // Emit tool calls if any
+    if (rawToolCalls && rawToolCalls.length > 0) {
+      for (const tc of rawToolCalls) {
+        const toolResult = rawToolResults?.find(tr => tr.toolCallId === tc.toolCallId)
 
-          const toolCall: ToolCall = {
-            name: pending.name,
-            arguments: args,
-            result
-          }
-          toolResults.push(toolCall)
+        yield {
+          type: 'tool_call',
+          toolCall: { name: tc.toolName }
+        }
 
+        if (toolResult) {
           yield {
             type: 'tool_result',
-            toolCall
-          }
-        } catch (error) {
-          yield {
-            type: 'error',
-            error: `Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+            toolCall: {
+              name: tc.toolName,
+              arguments: tc.args,
+              result: toolResult.result
+            }
           }
         }
-      }
-
-      // If tools were called, stream the follow-up response
-      if (toolResults.length > 0) {
-        yield* this.streamFollowUp(openAIMessages, pendingToolCalls, toolResults, options)
       }
     }
 
@@ -216,61 +125,9 @@ export class OpenAIProvider implements AIProvider {
   }
 
   /**
-   * Stream follow-up response after tool execution
+   * Format messages for AI SDK CoreMessage format
    */
-  private async *streamFollowUp(
-    originalMessages: ChatCompletionMessageParam[],
-    pendingToolCalls: Map<number, { id: string; name: string; arguments: string }>,
-    toolResults: ToolCall[],
-    options: AICompletionOptions
-  ): AsyncGenerator<StreamChunk> {
-    // Build assistant message with tool calls
-    const assistantToolCalls = Array.from(pendingToolCalls.values()).map((tc, index) => ({
-      id: tc.id,
-      type: 'function' as const,
-      function: {
-        name: tc.name,
-        arguments: tc.arguments
-      }
-    }))
-
-    const messagesWithTools: ChatCompletionMessageParam[] = [
-      ...originalMessages,
-      {
-        role: 'assistant' as const,
-        content: null,
-        tool_calls: assistantToolCalls
-      },
-      ...toolResults.map((tc, index) => ({
-        role: 'tool' as const,
-        tool_call_id: assistantToolCalls[index].id,
-        content: JSON.stringify(tc.result)
-      }))
-    ]
-
-    const followUpStream = await this.client.chat.completions.create({
-      model: options.model || DEFAULT_MODEL,
-      messages: messagesWithTools,
-      temperature: options.temperature ?? DEFAULT_TEMPERATURE,
-      max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
-      stream: true
-    })
-
-    for await (const chunk of followUpStream) {
-      const delta = chunk.choices[0]?.delta
-      if (delta?.content) {
-        yield {
-          type: 'content',
-          content: delta.content
-        }
-      }
-    }
-  }
-
-  /**
-   * Format messages for OpenAI API
-   */
-  private formatMessages(messages: AIMessage[]): ChatCompletionMessageParam[] {
+  private formatMessages(messages: AIMessage[]): CoreMessage[] {
     return messages.map(msg => ({
       role: msg.role,
       content: msg.content

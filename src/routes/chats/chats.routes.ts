@@ -37,16 +37,8 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
     "/",
     { schema: routeSchemas.listChats },
     async (req: FastifyRequest<ListChatsRequest>, reply: FastifyReply) => {
-      const { cursor, limit = 20, archived } = req.query;
       const userId = req.user!.sub;
-
-      req.log.info({ userId, cursor, limit, archived }, "Listing chats");
-
-      // TODO: Implement business logic
-      return {
-        chats: [],
-        nextCursor: null,
-      };
+      return fastify.chatService.listChats(userId);
     },
   );
 
@@ -57,14 +49,7 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
     async (req: FastifyRequest<ChatParamsRequest>, reply: FastifyReply) => {
       const { chatId } = req.params;
       const userId = req.user!.sub;
-
-      req.log.info({ userId, chatId }, "Getting chat history");
-
-      // TODO: Implement business logic - fetch messages from database
-      return {
-        chatId,
-        messages: [],
-      };
+      return fastify.chatService.getChatHistory(chatId, userId);
     },
   );
 

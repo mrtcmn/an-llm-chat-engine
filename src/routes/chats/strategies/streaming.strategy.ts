@@ -3,6 +3,13 @@ import { AIService } from '../../../services/ai'
 import type { AIMessage } from '../../../services/ai'
 
 /**
+ * Send an SSE event to the client
+ */
+function sendSSE(reply: FastifyReply, data: unknown): void {
+  reply.raw.write(`data: ${JSON.stringify(data)}\n\n`)
+}
+
+/**
  * Streaming Strategy
  * Handles SSE (Server-Sent Events) streaming responses for AI completions
  *
@@ -21,46 +28,47 @@ export async function streamingStrategy(
 ): Promise<void> {
   const aiService = AIService.getInstance()
 
+  // Set SSE headers
+  reply.raw.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  })
+
   // Track accumulated content for logging/saving
   let fullContent = ''
 
   try {
-    // Use @fastify/sse for SSE handling with async generator
-    await reply.sse.send((async function* () {
-      for await (const chunk of aiService.stream(messages)) {
-        // Track content for later use
-        if (chunk.type === 'content' && chunk.content) {
-          fullContent += chunk.content
-        }
-
-        // Log tool executions
-        if (chunk.type === 'tool_result') {
-          req.log.info(
-            { tool: chunk.toolCall?.name, result: chunk.toolCall?.result },
-            'Tool executed'
-          )
-        }
-
-        // Yield SSE event with data
-        yield { data: JSON.stringify(chunk) }
+    for await (const chunk of aiService.stream(messages)) {
+      // Track content for later use
+      if (chunk.type === 'content' && chunk.content) {
+        fullContent += chunk.content
       }
 
-      req.log.info({ contentLength: fullContent.length }, 'Stream completed')
-    })())
+      // Log tool executions
+      if (chunk.type === 'tool_result') {
+        req.log.info(
+          { tool: chunk.toolCall?.name, result: chunk.toolCall?.result },
+          'Tool executed'
+        )
+      }
+
+      // Send SSE event
+      sendSSE(reply, chunk)
+    }
+
+    req.log.info({ contentLength: fullContent.length }, 'Stream completed')
   } catch (error) {
     req.log.error({ error }, 'Stream error')
 
     // Send error event through SSE
-    await reply.sse.send({
-      data: JSON.stringify({
-        type: 'error',
-        error: error instanceof Error ? error.message : 'Unknown streaming error'
-      })
+    sendSSE(reply, {
+      type: 'error',
+      error: error instanceof Error ? error.message : 'Unknown streaming error'
     })
+  } finally {
+    reply.raw.end()
   }
-
-  // Return the accumulated content for message saving
-  return
 }
 
 /**

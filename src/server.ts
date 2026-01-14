@@ -1,8 +1,8 @@
 import Fastify from "fastify";
-import fastifySSE from "@fastify/sse";
 import { configPlugin } from "@config";
 import { databasePlugin } from "@services/database";
 import { aiPlugin } from "@services/ai";
+import { chatServicePlugin } from "@services/chat";
 import { jwtPlugin } from "@services/auth";
 import { swaggerPlugin } from "@services/docs";
 import { routerPlugin } from "@routes";
@@ -28,22 +28,22 @@ const fastify = Fastify({
 // 1. Config plugin (all other plugins depend on it)
 fastify.register(configPlugin);
 
-// 2. SSE plugin (provides Server-Sent Events support)
-fastify.register(fastifySSE);
-
-// 3. Database plugin (depends on config)
+// 2. Database plugin (depends on config)
 fastify.register(databasePlugin);
 
 // 4. AI plugin (depends on config, provides AI service)
 fastify.register(aiPlugin);
 
-// 5. JWT plugin (depends on config, provides auth infrastructure)
+// 5. Chat service plugin (depends on config, database)
+fastify.register(chatServicePlugin);
+
+// 6. JWT plugin (depends on config, provides auth infrastructure)
 fastify.register(jwtPlugin);
 
-// 6. Swagger plugin (depends on config, provides API documentation)
+// 7. Swagger plugin (depends on config, provides API documentation)
 fastify.register(swaggerPlugin);
 
-// 7. Router plugin (depends on jwt and database, registers all routes)
+// 8. Router plugin (depends on jwt, database, and chat services, registers all routes)
 fastify.register(routerPlugin);
 
 const start = async () => {

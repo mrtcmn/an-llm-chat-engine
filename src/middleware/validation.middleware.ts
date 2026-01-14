@@ -27,7 +27,6 @@ export const bodySchemas = {
     required: ["message"],
     properties: {
       message: { type: "string", minLength: 1, maxLength: 32000 },
-      stream: { type: "boolean", default: true },
     },
   },
 } as const;

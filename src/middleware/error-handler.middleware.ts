@@ -168,7 +168,7 @@ export function errorHandler(
   // Add AppError-specific context (nested business logic details)
   if (error instanceof AppError) {
     logContext.error = {
-      ...logContext.error,
+      ...(logContext.error as Record<string, unknown>),
       code: error.errorCode,
       category: error.errorCategory,
       details: error.details,
