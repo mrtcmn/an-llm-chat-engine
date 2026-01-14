@@ -39,7 +39,7 @@ export async function completionsRoutes(fastify: FastifyInstance): Promise<void>
     },
     async (req: FastifyRequest<CreateCompletionRequest>, reply: FastifyReply) => {
       const { chatId } = req.params;
-      const { message} = req.body;
+      const { message } = req.body;
       const userId = req.user!.sub;
 
       return fastify.completionService.createCompletion(

@@ -4,7 +4,7 @@ import type { MessageRepository } from '../../repositories/message.repository'
 import type { ConfigService } from '@config'
 import { AppError } from '@middleware'
 import { streamingStrategy, regularStrategy } from '../../routes/chats/strategies'
-import type { AIMessage } from '../ai'
+import type { AIMessage, AICompletionOptions } from '../ai'
 
 export class CompletionService {
   constructor(
@@ -41,16 +41,30 @@ export class CompletionService {
       { role: 'user', content: userMessage }
     ]
 
+    // Build AI options based on feature flags
+    const aiOptions: AICompletionOptions = {
+      tools: this.config.getFeatureFlag('aiToolsEnabled')
+    }
+
     const streamingEnabled = this.config.getFeatureFlag('streamingEnabled')
     const useStreaming = streamingEnabled
 
     if (useStreaming) {
-      await streamingStrategy(req, reply, messages)
+      const streamResult = await streamingStrategy(req, reply, messages, aiOptions)
+      
+      // Save the complete assistant message after streaming
+      await this.messageRepo.create({
+        chatId,
+        role: 'assistant',
+        content: streamResult.content
+      })
+      
       return reply
     }
 
-    const response = await regularStrategy(req, chatId, messages)
+    const response = await regularStrategy(req, chatId, messages, aiOptions)
 
+    // Save the assistant message for regular strategy
     await this.messageRepo.create({
       chatId,
       role: 'assistant',

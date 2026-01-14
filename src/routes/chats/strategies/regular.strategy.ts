@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify'
 import { AIService } from '../../../services/ai'
-import type { AIMessage, ToolCall } from '../../../services/ai'
+import type { AIMessage, AICompletionOptions, ToolCall } from '../../../services/ai'
 
 /**
  * Regular (non-streaming) completion response
@@ -22,13 +22,14 @@ export interface RegularCompletionResponse {
 export async function regularStrategy(
   req: FastifyRequest,
   chatId: string,
-  messages: AIMessage[]
+  messages: AIMessage[],
+  options?: AICompletionOptions
 ): Promise<RegularCompletionResponse> {
   const aiService = AIService.getInstance()
 
   req.log.info({ messageCount: messages.length }, 'Starting regular completion')
 
-  const response = await aiService.complete(messages)
+  const response = await aiService.complete(messages, options)
 
   // Log tool usage if any
   if (response.toolCalls && response.toolCalls.length > 0) {

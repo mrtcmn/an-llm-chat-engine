@@ -12,7 +12,7 @@ export interface AICompletionOptions {
   model?: string
   temperature?: number
   maxTokens?: number
-  tools?: boolean // Flag to enable tools from registry
+  tools?: boolean // Enable tool calling
 }
 
 export interface AITool {
@@ -35,10 +35,20 @@ export interface ToolCall {
 }
 
 export interface StreamChunk {
-  type: 'start' | 'content' | 'tool_call' | 'tool_result' | 'done' | 'error'
+  type: 'start' | 'content' | 'tool_call' | 'tool_result' | 'done' | 'error' | 'step_start' | 'step_finish' | 'reasoning'
   content?: string
+  reasoning?: string // For reasoning-delta from models like o1/o3
   toolCall?: Partial<ToolCall>
   error?: string
+  stepInfo?: {
+    stepType?: 'initial' | 'continue' | 'tool-result'
+    finishReason?: 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'
+    usage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }
 }
 
 /**

@@ -4,7 +4,7 @@ import type { CoreMessage } from 'ai'
 import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, ToolCall, AIProvider } from '../ai.types'
 import { ToolRegistry } from '../tool-library'
 
-const DEFAULT_MODEL = 'gpt-5-mini-2025-08-07'
+const DEFAULT_MODEL = 'gpt-4o-mini' // Supports tool calling and streaming
 const DEFAULT_MAX_COMPLETION_TOKENS = 2048
 
 interface ToolCallResult {
@@ -69,6 +69,7 @@ export class OpenAIProvider implements AIProvider {
 
   /**
    * Streaming completion using AI SDK streamText
+   * Properly handles tool calls during streaming
    */
   async *stream(
     messages: AIMessage[],
@@ -83,41 +84,137 @@ export class OpenAIProvider implements AIProvider {
       model: this.openai(options.model || DEFAULT_MODEL),
       messages: coreMessages,
       maxTokens: options.maxTokens ?? DEFAULT_MAX_COMPLETION_TOKENS,
-      tools
+      
+      tools,
+      maxSteps: 5,
+      providerOptions: {
+        openai: {
+          reasoningSummary: 'detailed',
+        },
+      },
     })
 
-    // Stream text chunks
-    for await (const chunk of result.textStream) {
-      yield {
-        type: 'content',
-        content: chunk
+    // Track tool calls for results later
+    const toolCallsMap = new Map<string, { name: string; args: any }>()
+
+    // Stream all parts (text and tool calls)
+    for await (const part of result.fullStream) {
+      console.log(part)
+      switch (part.type) {
+        case 'step-start':
+          // Multi-step process started
+          yield {
+            type: 'step_start',
+            stepInfo: {
+              stepType: 'messageId' in part ? 'initial' : undefined
+            }
+          }
+          break
+
+        case 'step-finish':
+          // Multi-step process finished
+          yield {
+            type: 'step_finish',
+            stepInfo: {
+              finishReason: part.finishReason,
+              usage: part.usage ? {
+                promptTokens: part.usage.promptTokens,
+                completionTokens: part.usage.completionTokens,
+                totalTokens: part.usage.totalTokens
+              } : undefined
+            }
+          }
+          break
+
+        case 'text-delta':
+          // Stream text content as it arrives
+          yield {
+            type: 'content',
+            content: part.textDelta
+          }
+          break
+
+        case 'reasoning':
+          // Stream reasoning content (for o1/o3 models)
+          if ('reasoning' in part && typeof part.reasoning === 'string') {
+            yield {
+              type: 'reasoning',
+              reasoning: part.reasoning
+            }
+          }
+          break
+
+        case 'tool-call':
+          // Emit and track tool call when it happens
+          toolCallsMap.set(part.toolCallId, {
+            name: part.toolName,
+            args: part.args
+          })
+          
+          yield {
+            type: 'tool_call',
+            toolCall: {
+              name: part.toolName,
+              arguments: part.args
+            }
+          }
+          break
+
+        case 'tool-call-delta':
+          // Incremental tool call data (for streaming tool arguments)
+          if ('argsTextDelta' in part && part.argsTextDelta) {
+            yield {
+              type: 'tool_call',
+              toolCall: {
+                name: part.toolName,
+                arguments: part.argsTextDelta as any
+              }
+            }
+          }
+          break
+
+        case 'error':
+          // Error during streaming
+          if ('error' in part) {
+            yield {
+              type: 'error',
+              error: typeof part.error === 'string' ? part.error : 
+                     (part.error as any)?.message || 'Unknown streaming error'
+            }
+          }
+          break
+
+        case 'finish':
+          // Stream finished - get final tool results if any
+          break
+
+        default:
+          // Ignore other event types (tool-result handled below after stream)
+          break
       }
     }
 
-    // Get tool calls and results (they are promises)
-    const rawToolCalls = (await result.toolCalls) as ToolCallResult[]
-    const rawToolResults = (await result.toolResults) as ToolResult[]
+    // After stream completes, get tool results
+    if (toolCallsMap.size > 0) {
+      try {
+        const finalToolResults = (await result.toolResults) as ToolResult[]
 
-    // Emit tool calls if any
-    if (rawToolCalls && rawToolCalls.length > 0) {
-      for (const tc of rawToolCalls) {
-        const toolResult = rawToolResults?.find(tr => tr.toolCallId === tc.toolCallId)
-
-        yield {
-          type: 'tool_call',
-          toolCall: { name: tc.toolName }
-        }
-
-        if (toolResult) {
-          yield {
-            type: 'tool_result',
-            toolCall: {
-              name: tc.toolName,
-              arguments: tc.args,
-              result: toolResult.result
+        // Emit tool results
+        for (const toolResult of finalToolResults) {
+          const toolCall = toolCallsMap.get(toolResult.toolCallId)
+          if (toolCall) {
+            yield {
+              type: 'tool_result',
+              toolCall: {
+                name: toolCall.name,
+                arguments: toolCall.args,
+                result: toolResult.result
+              }
             }
           }
         }
+      } catch (e) {
+        // Tool results might not be available in all cases
       }
     }
 
