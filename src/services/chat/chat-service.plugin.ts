@@ -1,12 +1,9 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import fp from 'fastify-plugin'
-import { ChatRepository } from '../../repositories/chat.repository'
-import { MessageRepository } from '../../repositories/message.repository'
-import { UserRepository } from '../../repositories/user.repository'
+import { ChatRepository, MessageRepository } from '../../repositories'
 import { ChatService } from './chat.service'
 import { CompletionService } from './completion.service'
 import { ResponseStrategyPlugin } from './response-strategy.plugin'
-import type { PrismaService } from '../database/prisma.service'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -20,12 +17,9 @@ const chatServicePlugin: FastifyPluginAsync = async (fastify: FastifyInstance) =
 
   const config = fastify.config
   const db = fastify.db
-  const prismaService = db.getStrategy<PrismaService>()
-  const prisma = prismaService.client
 
-  const chatRepo = new ChatRepository(prisma)
-  const messageRepo = new MessageRepository(prisma)
-  const userRepo = new UserRepository(prisma)
+  const chatRepo = new ChatRepository(db)
+  const messageRepo = new MessageRepository(db)
 
   const chatService = new ChatService(chatRepo, messageRepo, config)
   const responseStrategy = new ResponseStrategyPlugin(config, messageRepo)

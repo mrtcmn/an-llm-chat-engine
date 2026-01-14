@@ -1,12 +1,11 @@
 import type { ConfigService } from '@config'
-import type { ChatRepository } from '../../repositories/chat.repository'
-import type { MessageRepository } from '../../repositories/message.repository'
+import type { IChatRepository, IMessageRepository } from '../../repositories'
 import { AppError } from '@middleware'
 
 export class ChatService {
   constructor(
-    private chatRepo: ChatRepository,
-    private messageRepo: MessageRepository,
+    private chatRepo: IChatRepository,
+    private messageRepo: IMessageRepository,
     private config: ConfigService
   ) {}
 

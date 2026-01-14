@@ -1,21 +1,36 @@
-import type { PrismaClient, Message } from '@prisma/client'
+import type { DatabaseService } from '../services/database/database.service'
+import type { PrismaService } from '../services/database/prisma.service'
+import type { IMessageRepository, FindByChatIdOptions } from './interfaces'
+import { MessagePrismaRepositoryImpl } from './implementations/prisma/message.prisma.repository'
+import type { Message } from '@prisma/client'
 
-export interface FindByChatIdOptions {
-  limit?: number
-}
+export class MessageRepository implements IMessageRepository {
+  private impl: IMessageRepository
 
-export class MessageRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(db: DatabaseService) {
+    const strategy = db.getStrategy()
+    
+    // Check which database strategy is active
+    if (this.isPrismaService(strategy)) {
+      this.impl = new MessagePrismaRepositoryImpl(strategy.client)
+    } else {
+      throw new Error(
+        `Unsupported database strategy: ${strategy.constructor.name}. ` +
+        `Supported strategies: PrismaService`
+      )
+    }
+  }
 
+  private isPrismaService(strategy: any): strategy is PrismaService {
+    return 'client' in strategy && strategy.client !== undefined
+  }
+
+  // Delegate all interface methods
   async findByChatId(
     chatId: string,
-    options: FindByChatIdOptions = {}
+    options?: FindByChatIdOptions
   ): Promise<Message[]> {
-    return this.prisma.message.findMany({
-      where: { chatId },
-      orderBy: { createdAt: 'asc' },
-      ...(options.limit && { take: options.limit })
-    })
+    return this.impl.findByChatId(chatId, options)
   }
 
   async create(data: {
@@ -23,6 +38,6 @@ export class MessageRepository {
     role: string
     content: string
   }): Promise<Message> {
-    return this.prisma.message.create({ data })
+    return this.impl.create(data)
   }
 }

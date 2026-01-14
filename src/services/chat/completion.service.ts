@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { ChatService } from './chat.service'
-import type { MessageRepository } from '../../repositories/message.repository'
+import type { IMessageRepository } from '../../repositories'
 import type { ConfigService } from '@config'
 import { AppError } from '@middleware'
 import type { ResponseStrategyPlugin } from './response-strategy.plugin'
@@ -9,7 +9,7 @@ import type { AIMessage, AICompletionOptions } from '../ai'
 export class CompletionService {
   constructor(
     private chatService: ChatService,
-    private messageRepo: MessageRepository,
+    private messageRepo: IMessageRepository,
     private config: ConfigService,
     private responseStrategy: ResponseStrategyPlugin
   ) {}

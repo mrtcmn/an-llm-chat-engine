@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import type { ConfigService } from '@config'
-import type { MessageRepository } from '../../repositories/message.repository'
+import type { IMessageRepository } from '../../repositories'
 import type { AIMessage, AICompletionOptions } from '../ai'
 import { streamingStrategy, regularStrategy } from './strategies'
 
@@ -11,7 +11,7 @@ import { streamingStrategy, regularStrategy } from './strategies'
 export class ResponseStrategyPlugin {
   constructor(
     private config: ConfigService,
-    private messageRepo: MessageRepository
+    private messageRepo: IMessageRepository
   ) {}
 
   async execute(

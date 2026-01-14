@@ -1,42 +1,47 @@
-import type { PrismaClient, Chat } from '@prisma/client'
+import type { DatabaseService } from '../services/database/database.service'
+import type { PrismaService } from '../services/database/prisma.service'
+import type { IChatRepository } from './interfaces'
+import { ChatPrismaRepositoryImpl } from './implementations/prisma/chat.prisma.repository'
+import type { Chat } from '@prisma/client'
 
-export class ChatRepository {
-  constructor(private prisma: PrismaClient) {}
+export class ChatRepository implements IChatRepository {
+  private impl: IChatRepository
 
+  constructor(db: DatabaseService) {
+    const strategy = db.getStrategy()
+    
+    // Check which database strategy is active
+    if (this.isPrismaService(strategy)) {
+      this.impl = new ChatPrismaRepositoryImpl(strategy.client)
+    } else {
+      throw new Error(
+        `Unsupported database strategy: ${strategy.constructor.name}. ` +
+        `Supported strategies: PrismaService`
+      )
+    }
+  }
+
+  private isPrismaService(strategy: any): strategy is PrismaService {
+    return 'client' in strategy && strategy.client !== undefined
+  }
+
+  // Delegate all interface methods
   async findById(chatId: string): Promise<Chat | null> {
-    return this.prisma.chat.findUnique({ where: { id: chatId } })
+    return this.impl.findById(chatId)
   }
 
   async findByUserId(
     userId: string,
-    options: { limit?: number; offset?: number } = {}
+    options?: { limit?: number; offset?: number }
   ): Promise<{ chats: Chat[]; total: number }> {
-    const { limit = 20, offset = 0 } = options;
-    
-    const [chats, total] = await this.prisma.$transaction([
-      this.prisma.chat.findMany({
-        where: { userId },
-        take: limit,
-        skip: offset,
-        orderBy: { createdAt: 'desc' }
-      }),
-      this.prisma.chat.count({
-        where: { userId }
-      })
-    ]);
-
-    return { chats, total };
+    return this.impl.findByUserId(userId, options)
   }
 
   async create(data: { userId: string; title: string }): Promise<Chat> {
-    return this.prisma.chat.create({ data })
+    return this.impl.create(data)
   }
 
   async upsert(data: { id: string; userId: string; title: string }): Promise<Chat> {
-    return this.prisma.chat.upsert({
-      where: { id: data.id },
-      create: { id: data.id, userId: data.userId, title: data.title },
-      update: {}
-    })
+    return this.impl.upsert(data)
   }
 }
