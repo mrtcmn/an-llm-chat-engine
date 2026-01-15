@@ -47,6 +47,7 @@ async function main() {
     }
 
     console.log("✨ Seed completed successfully!");
+    process.exit(0);
   } finally {
     // Ensure proper cleanup
     await prismaService.disconnect();
