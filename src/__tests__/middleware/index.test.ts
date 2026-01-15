@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AppError,
   authMiddleware,
-  bodySchemas,
   type ClientType,
   clientDetectionMiddleware,
   type ErrorResponse,
@@ -11,15 +10,18 @@ import {
   type JwtUserPayload,
   loggingMiddleware,
   notFoundHandler,
-  paramSchemas,
-  querySchemas,
   rateLimitMiddleware,
   registerMiddlewareChain,
   requestContextMiddleware,
-  responseSchemas,
-  routeSchemas,
   withMiddleware,
 } from "../../middleware/index.js";
+import {
+  bodySchemas,
+  paramSchemas,
+  querySchemas,
+  responseSchemas,
+  routeSchemas,
+} from "../../schemas/validation.schemas.js";
 
 describe("Middleware Index", () => {
   describe("Exports", () => {
