@@ -3,8 +3,9 @@ import {
   clientDetectionMiddleware,
   loggingMiddleware,
   registerMiddlewareChain,
-  routeSchemas,
 } from "@middleware";
+import { routeSchemas } from "@schemas/validation.schemas";
+
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 /**

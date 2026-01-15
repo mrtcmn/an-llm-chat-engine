@@ -24,7 +24,8 @@
       "@routes/*": ["./routes/*"],
       "@middleware": ["./middleware"],
       "@middleware/*": ["./middleware/*"],
-      "@utils/*": ["./utils/*"]
+      "@utils/*": ["./utils/*"],
+      "@schemas/*": ["./schemas/*"]
     }
   },
   "include": ["src/**/*"],

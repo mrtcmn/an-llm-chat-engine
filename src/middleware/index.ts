@@ -1,12 +1,5 @@
 import type { FastifyInstance, preHandlerHookHandler } from "fastify";
 
-export {
-  bodySchemas,
-  paramSchemas,
-  querySchemas,
-  responseSchemas,
-  routeSchemas,
-} from "../schemas/index.js";
 export type { JwtUserPayload } from "./auth.middleware.js";
 // Export all middleware
 export { authMiddleware } from "./auth.middleware.js";
