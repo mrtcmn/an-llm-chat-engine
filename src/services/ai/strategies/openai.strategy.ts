@@ -4,9 +4,12 @@ import type { CoreMessage } from 'ai'
 import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, ToolCall, AIProvider } from '../ai.types'
 import { ToolRegistry } from '../tool-library'
 import { LoggerService } from '@utils/logger'
+import { getDefaultModel } from './openai.model-library'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
-const DEFAULT_MAX_COMPLETION_TOKENS = 2048
+// Get default model from model library
+const defaultModel = getDefaultModel()
+const DEFAULT_MODEL = defaultModel?.name || 'gpt-4o-mini'
+const DEFAULT_MAX_COMPLETION_TOKENS = defaultModel?.options?.maxTokens || 2048
 
 interface ToolCallResult {
   toolCallId: string
