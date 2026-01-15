@@ -5,7 +5,7 @@ import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, ToolCall,
 import { ToolRegistry } from '../tool-library'
 import { LoggerService } from '@utils/logger'
 
-const DEFAULT_MODEL = 'gpt-4o-mini' // Supports tool calling and streaming
+const DEFAULT_MODEL = 'gpt-4o-mini'
 const DEFAULT_MAX_COMPLETION_TOKENS = 2048
 
 interface ToolCallResult {

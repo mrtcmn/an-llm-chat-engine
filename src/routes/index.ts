@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import { chatsRoutes, completionsRoutes } from "./chats/index";
 import { authRoutes } from "./auth.routes";
+import { healthRoutes } from "./health.routes";
 import { errorHandler, notFoundHandler } from "@middleware";
 
 /**
@@ -20,6 +21,9 @@ async function routerPluginCallback(fastify: FastifyInstance): Promise<void> {
 
   // Set 404 handler
   fastify.setNotFoundHandler(notFoundHandler);
+
+  // Health check routes (no /api prefix - should be at root for monitoring tools)
+  fastify.register(healthRoutes, { prefix: "/health" });
 
   // API routes
   fastify.register(async (api) => {
@@ -44,3 +48,4 @@ export const routerPlugin = fp(routerPluginCallback, {
 // Re-export individual routes for custom registration if needed
 export { chatsRoutes, completionsRoutes } from "./chats/index.js";
 export { authRoutes } from "./auth.routes.js";
+export { healthRoutes } from "./health.routes.js";

@@ -14,7 +14,7 @@ export const paramSchemas = {
     type: "object" as const,
     required: ["chatId"],
     properties: {
-      chatId: { type: "string" },
+      chatId: { type: "string", minLength: 5, maxLength: 64 },
     },
   },
 } as const;
@@ -126,7 +126,7 @@ export const routeSchemas = {
       200: {
         type: "object",
         properties: {
-          chatId: { type: "string" },
+          chatId: { type: "string", minLength: 5, maxLength: 64 },
           messages: { type: "array", items: responseSchemas.message },
         },
       },

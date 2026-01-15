@@ -9,9 +9,9 @@ const getCurrentWeatherTool = tool({
   description: 'Get the current weather for a location. Returns temperature, condition, and humidity.',
   parameters: z.object({
     location: z.string().describe('City name, e.g. "San Francisco" or "New York"'),
-    unit: z.enum(['celsius', 'fahrenheit']).optional().default('fahrenheit').describe('Temperature unit')
+    unit: z.enum(['celsius', 'fahrenheit']).describe('Temperature unit')
   }),
-  execute: async ({ location, unit }) => {
+  execute: async ({ location, unit = 'celsius' }) => {
     // Mock implementation - returns fake weather data
     const conditions = ['sunny', 'cloudy', 'partly cloudy', 'rainy', 'stormy']
     const condition = conditions[Math.floor(Math.random() * conditions.length)]
