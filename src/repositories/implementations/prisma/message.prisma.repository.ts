@@ -1,4 +1,4 @@
-import type { PrismaClient, Message } from '@prisma/client'
+import type { PrismaClient, Message } from '@generated/prisma/client'
 import type { IMessageRepository, FindByChatIdOptions } from '../../interfaces'
 
 export class MessagePrismaRepositoryImpl implements IMessageRepository {

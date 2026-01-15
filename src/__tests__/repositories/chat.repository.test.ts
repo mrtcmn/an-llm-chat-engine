@@ -22,7 +22,7 @@ describe('ChatRepository', () => {
 
       expect(result).toEqual(mockChat)
       expect(mockPrisma.chat.findUnique).toHaveBeenCalledWith({
-        where: { id: mockChat.id }
+        where: { id: mockChat.id, deletedAt: null }
       })
     })
 
@@ -33,7 +33,7 @@ describe('ChatRepository', () => {
 
       expect(result).toBeNull()
       expect(mockPrisma.chat.findUnique).toHaveBeenCalledWith({
-        where: { id: 'non-existent-id' }
+        where: { id: 'non-existent-id', deletedAt: null }
       })
     })
   })
@@ -56,7 +56,7 @@ describe('ChatRepository', () => {
       expect(mockPrisma.$transaction).toHaveBeenCalled()
       // Verify findMany was called with default limit and offset
       expect(mockPrisma.chat.findMany).toHaveBeenCalledWith({
-        where: { userId: mockUser.id },
+        where: { userId: mockUser.id, deletedAt: null },
         take: 20,
         skip: 0,
         orderBy: { createdAt: 'desc' }

@@ -22,7 +22,7 @@ describe('MessageRepository', () => {
 
       expect(result).toEqual(mockMessages)
       expect(mockPrisma.message.findMany).toHaveBeenCalledWith({
-        where: { chatId: mockChat.id },
+        where: { chatId: mockChat.id, deletedAt: null },
         orderBy: { createdAt: 'asc' }
       })
     })
@@ -35,7 +35,7 @@ describe('MessageRepository', () => {
 
       expect(result).toEqual(limitedMessages)
       expect(mockPrisma.message.findMany).toHaveBeenCalledWith({
-        where: { chatId: mockChat.id },
+        where: { chatId: mockChat.id, deletedAt: null },
         orderBy: { createdAt: 'asc' },
         take: 2
       })
@@ -55,7 +55,7 @@ describe('MessageRepository', () => {
       await messageRepo.findByChatId(mockChat.id)
 
       expect(mockPrisma.message.findMany).toHaveBeenCalledWith({
-        where: { chatId: mockChat.id },
+        where: { chatId: mockChat.id, deletedAt: null },
         orderBy: { createdAt: 'asc' }
       })
       // Verify no 'take' key in the call

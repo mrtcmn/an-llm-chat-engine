@@ -2,7 +2,7 @@ import type { DatabaseService } from '../services/database/database.service'
 import type { PrismaService } from '../services/database/prisma.service'
 import type { IChatRepository } from './interfaces'
 import { ChatPrismaRepositoryImpl } from './implementations/prisma/chat.prisma.repository'
-import type { Chat } from '@prisma/client'
+import type { Chat } from '@generated/prisma/client'
 
 export class ChatRepository implements IChatRepository {
   private impl: IChatRepository

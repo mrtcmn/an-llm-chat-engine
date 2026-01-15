@@ -18,7 +18,7 @@ const mockPoolInstance = {
 }
 
 // Mock the modules
-vi.mock('@prisma/client', () => {
+vi.mock('@generated/prisma/client', () => {
   return {
     PrismaClient: class MockPrismaClient {
       $connect = vi.fn().mockResolvedValue(undefined)
@@ -67,7 +67,7 @@ vi.mock('@utils/logger', () => ({
 
 // Import after mocking
 import { PrismaService } from '../../../services/database/prisma.service'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@generated/prisma/client'
 import pg from 'pg'
 
 describe('PrismaService', () => {

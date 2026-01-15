@@ -1,4 +1,4 @@
-import type { Chat } from '@prisma/client'
+import type { Chat } from '@generated/prisma/client'
 
 export interface IChatRepository {
   findById(chatId: string): Promise<Chat | null>

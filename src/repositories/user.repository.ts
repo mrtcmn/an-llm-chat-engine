@@ -2,7 +2,7 @@ import type { DatabaseService } from '../services/database/database.service'
 import type { PrismaService } from '../services/database/prisma.service'
 import type { IUserRepository } from './interfaces'
 import { UserPrismaRepositoryImpl } from './implementations/prisma/user.prisma.repository'
-import type { User } from '@prisma/client'
+import type { User } from '@generated/prisma/client'
 
 export class UserRepository implements IUserRepository {
   private impl: IUserRepository
