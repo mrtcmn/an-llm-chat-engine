@@ -17,7 +17,8 @@
       "style": {
         "noNonNullAssertion": "off",
         "useReadonlyClassProperties": "off",
-        "noParameterProperties": "off"
+        "noParameterProperties": "off",
+        "useConsistentMemberAccessibility": "off"
       },
       "complexity": {
         "noExcessiveCognitiveComplexity": "off"

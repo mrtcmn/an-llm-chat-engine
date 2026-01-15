@@ -1,6 +1,6 @@
 import { configPlugin } from "@config";
 import { REQUEST } from "@config/constants";
-import { rateLimitMiddleware, requestContextMiddleware } from "@middleware";
+import { ipRateLimitMiddleware, requestContextMiddleware } from "@middleware";
 import { routerPlugin } from "@routes";
 import { aiPlugin } from "@services/ai";
 import { appCheckPlugin } from "@services/app-check";
@@ -38,8 +38,8 @@ fastify.register(loggerPlugin);
 // Request context middleware (globally sets correlation ID for all requests)
 fastify.addHook("preHandler", requestContextMiddleware);
 
-// Rate limit middleware (globally checks IP-based rate limits, blocks restricted IPs early)
-fastify.addHook("preHandler", rateLimitMiddleware);
+// Rate limit middleware (globally checks IP-based rate limits only, blocks bad IPs early before auth)
+fastify.addHook("preHandler", ipRateLimitMiddleware);
 
 fastify.register(databasePlugin);
 fastify.register(aiPlugin);

@@ -2,6 +2,7 @@ import {
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
+  rateLimitMiddleware,
   registerMiddlewareChain,
 } from "@middleware";
 import { routeSchemas } from "@schemas/validation.schemas";
@@ -35,6 +36,7 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
   // Apply authenticated middleware chain to all routes in this plugin in exact order
   registerMiddlewareChain(fastify, [
     authMiddleware,
+    rateLimitMiddleware,
     clientDetectionMiddleware,
     loggingMiddleware,
   ]);

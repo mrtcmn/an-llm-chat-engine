@@ -2,6 +2,7 @@ import {
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
+  rateLimitMiddleware,
   registerMiddlewareChain,
 } from "@middleware";
 import { routeSchemas } from "@schemas/validation.schemas";
@@ -24,6 +25,7 @@ export async function completionsRoutes(
 ): Promise<void> {
   registerMiddlewareChain(fastify, [
     authMiddleware,
+    rateLimitMiddleware,
     clientDetectionMiddleware,
     loggingMiddleware,
   ]);

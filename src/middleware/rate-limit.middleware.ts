@@ -8,20 +8,13 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-/**
- * Route-specific rate limit configuration
- */
 export interface RouteRateLimitConfig {
   enabled?: boolean;
   customLimit?: number;
   customWindow?: number;
-  skipIpCheck?: boolean;
   skipUserCheck?: boolean;
 }
 
-/**
- * Extended FastifyRequest with rate limit config
- */
 declare module "fastify" {
   interface FastifyRequest {
     routeConfig?: {
@@ -30,14 +23,10 @@ declare module "fastify" {
   }
 }
 
-/**
- * Simple in-memory rate limiter store
- */
 class RateLimitStore {
   private store = new Map<string, RateLimitEntry>();
 
   constructor() {
-    // Cleanup expired entries every 5 minutes
     setInterval(() => this.cleanup(), 5 * 60 * 1000).unref();
   }
 
@@ -49,13 +38,11 @@ class RateLimitStore {
     const now = Date.now();
     const entry = this.store.get(key);
 
-    // New entry or expired window
     if (!entry || now >= entry.resetAt) {
       this.store.set(key, { count: 1, resetAt: now + windowMs });
       return { allowed: true, remaining: limit - 1, resetAt: now + windowMs };
     }
 
-    // Within window
     if (entry.count >= limit) {
       return { allowed: false, remaining: 0, resetAt: entry.resetAt };
     }
@@ -78,43 +65,28 @@ class RateLimitStore {
   }
 }
 
-// Single shared store
 const store = new RateLimitStore();
 
-/**
- * Rate limit tiers (from most to least permissive)
- * Using constants from @config for consistency across the application
- */
 const LIMITS = {
-  // Tier 1: IP-based - largest window, most permissive
   ip: {
     windowMs: RATE_LIMITS.IP.WINDOW_MS,
     limit: RATE_LIMITS.IP.MAX_REQUESTS,
   },
-  // Tier 2: User ID - medium window
   user: {
     windowMs: RATE_LIMITS.USER.WINDOW_MS,
     limit: RATE_LIMITS.USER.MAX_REQUESTS,
   },
-  // Tier 3: User ID + route - smallest, most restrictive
   route: {
     windowMs: RATE_LIMITS.ROUTE.WINDOW_MS,
     limit: RATE_LIMITS.ROUTE.MAX_REQUESTS,
   },
 } as const;
 
-/**
- * Generate route hash from method + path pattern
- */
 function getRouteHash(req: FastifyRequest): string {
-  // Use routeOptions.url for the pattern (e.g., "/chats/:chatId")
   const pattern = req.routeOptions?.url || req.url;
   return `${req.method}:${pattern}`;
 }
 
-/**
- * Set standard rate limit headers
- */
 function setRateLimitHeaders(
   reply: FastifyReply,
   limit: number,
@@ -126,9 +98,6 @@ function setRateLimitHeaders(
   reply.header("X-RateLimit-Reset", Math.ceil(resetAt / 1000));
 }
 
-/**
- * Set rate limit headers including Retry-After for exceeded limits
- */
 function setRateLimitExceededHeaders(
   reply: FastifyReply,
   limit: number,
@@ -140,26 +109,48 @@ function setRateLimitExceededHeaders(
 }
 
 /**
- * Rate limit middleware
- * Applies 3-tier rate limiting:
- * 1. IP-based (15min/500req) - prevents abuse from single IP
- * 2. User-based (1min/60req) - prevents single user flooding
- * 3. User+Route (1min/20req) - prevents hammering specific endpoints
- *
- * Supports route-specific configuration via req.routeConfig.rateLimit
+ * IP-based rate limit middleware
+ * Checks IP limits globally before auth
+ */
+export async function ipRateLimitMiddleware(
+  req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const ip = req.ip;
+  const ipKey = `ip:${ip}`;
+  const ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
+
+  setRateLimitHeaders(
+    reply,
+    LIMITS.ip.limit,
+    ipResult.remaining,
+    ipResult.resetAt
+  );
+
+  if (!ipResult.allowed) {
+    req.logger.warn("[Middleware] RateLimit: IP rate limit exceeded", { ip });
+    setRateLimitExceededHeaders(reply, LIMITS.ip.limit, ipResult.resetAt);
+    throw AppError.tooManyRequests("Too many requests from this IP");
+  }
+
+  req.logger.debug("[Middleware] RateLimit: IP check passed", {
+    ip,
+    remaining: ipResult.remaining,
+  });
+}
+
+/**
+ * User and route-based rate limit middleware
+ * Checks user and route limits per-route after auth
  */
 export async function rateLimitMiddleware(
   req: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  const ip = req.ip;
   const user = req.user as JwtUserPayload | undefined;
   const routeHash = getRouteHash(req);
-
-  // Get route-specific configuration
   const routeConfig = req.routeConfig?.rateLimit;
 
-  // Allow routes to completely disable rate limiting
   if (routeConfig?.enabled === false) {
     req.logger.debug("[Middleware] RateLimit: disabled for this route", {
       route: routeHash,
@@ -167,96 +158,61 @@ export async function rateLimitMiddleware(
     return;
   }
 
-  // Get custom limits or use defaults
+  if (!user?.sub) {
+    req.logger.debug(
+      "[Middleware] RateLimit: skipping user/route check (not authenticated)",
+      {
+        route: routeHash,
+      }
+    );
+    return;
+  }
+
+  const userId = user.sub;
   const routeLimit = routeConfig?.customLimit ?? LIMITS.route.limit;
   const routeWindow = routeConfig?.customWindow ?? LIMITS.route.windowMs;
 
-  // Tier 1: IP-based limit (unless explicitly skipped)
-  let ipResult:
-    | { allowed: boolean; remaining: number; resetAt: number }
-    | undefined;
-  if (!routeConfig?.skipIpCheck) {
-    const ipKey = `ip:${ip}`;
-    ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
+  if (!routeConfig?.skipUserCheck) {
+    const userKey = `user:${userId}`;
+    const userResult = store.check(
+      userKey,
+      LIMITS.user.limit,
+      LIMITS.user.windowMs
+    );
 
-    if (!ipResult.allowed) {
-      req.logger.warn("[Middleware] RateLimit: IP rate limit exceeded", { ip });
-      setRateLimitExceededHeaders(reply, LIMITS.ip.limit, ipResult.resetAt);
-      throw AppError.tooManyRequests("Too many requests from this IP");
+    if (!userResult.allowed) {
+      req.logger.warn("[Middleware] RateLimit: user rate limit exceeded", {
+        userId,
+      });
+      setRateLimitExceededHeaders(reply, LIMITS.user.limit, userResult.resetAt);
+      throw AppError.tooManyRequests("Too many requests");
     }
   }
 
-  // Tier 2 & 3: User-based limits (only if authenticated)
-  if (user?.sub) {
-    const userId = user.sub;
+  const routeKey = `route:${userId}:${routeHash}`;
+  const routeResult = store.check(routeKey, routeLimit, routeWindow);
 
-    // Tier 2: User limit (unless explicitly skipped)
-    if (!routeConfig?.skipUserCheck) {
-      const userKey = `user:${userId}`;
-      const userResult = store.check(
-        userKey,
-        LIMITS.user.limit,
-        LIMITS.user.windowMs
-      );
+  setRateLimitHeaders(
+    reply,
+    routeLimit,
+    routeResult.remaining,
+    routeResult.resetAt
+  );
 
-      if (!userResult.allowed) {
-        req.logger.warn("[Middleware] RateLimit: user rate limit exceeded", {
-          userId,
-        });
-        setRateLimitExceededHeaders(
-          reply,
-          LIMITS.user.limit,
-          userResult.resetAt
-        );
-        throw AppError.tooManyRequests("Too many requests");
-      }
-    }
-
-    // Tier 3: User + Route limit (with custom limits if configured)
-    const routeKey = `route:${userId}:${routeHash}`;
-    const routeResult = store.check(routeKey, routeLimit, routeWindow);
-
-    // Set headers based on most restrictive limit
-    setRateLimitHeaders(
-      reply,
-      routeLimit,
-      routeResult.remaining,
-      routeResult.resetAt
-    );
-
-    if (!routeResult.allowed) {
-      req.logger.warn("[Middleware] RateLimit: route rate limit exceeded", {
-        userId,
-        route: routeHash,
-        customLimit: routeConfig?.customLimit,
-      });
-      setRateLimitExceededHeaders(reply, routeLimit, routeResult.resetAt);
-      throw AppError.tooManyRequests("Too many requests to this endpoint");
-    }
-
-    req.logger.debug("[Middleware] RateLimit: rate limit check passed", {
+  if (!routeResult.allowed) {
+    req.logger.warn("[Middleware] RateLimit: route rate limit exceeded", {
       userId,
       route: routeHash,
-      remaining: routeResult.remaining,
-      limit: routeLimit,
+      customLimit: routeConfig?.customLimit,
     });
-  } else {
-    // Unauthenticated: only IP limit headers (already checked above)
-    if (ipResult) {
-      setRateLimitHeaders(
-        reply,
-        LIMITS.ip.limit,
-        ipResult.remaining,
-        ipResult.resetAt
-      );
-    }
-
-    req.logger.debug(
-      "[Middleware] RateLimit: rate limit check passed (unauthenticated)",
-      {
-        ip,
-        remaining: ipResult?.remaining,
-      }
-    );
+    setRateLimitExceededHeaders(reply, routeLimit, routeResult.resetAt);
+    throw AppError.tooManyRequests("Too many requests to this endpoint");
   }
+
+  req.logger.debug("[Middleware] RateLimit: user/route check passed", {
+    userId,
+    route: routeHash,
+    remaining: routeResult.remaining,
+    limit: routeLimit,
+  });
 }
