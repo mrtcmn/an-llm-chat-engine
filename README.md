@@ -54,6 +54,58 @@ A production-ready chat engine powered by LLMs, built with Fastify, Prisma, and 
 
 The server will start on `http://localhost:3000`
 
+## Testing the API
+
+After completing the Quick Start steps, you can test the API using the interactive documentation:
+
+### 1. Navigate to API Documentation
+
+Open your browser and go to:
+
+**`http://localhost:3000/docs`**
+
+This provides a Swagger/OpenAPI interface with Scalar UI for testing all endpoints.
+
+### 2. Obtain JWT Token for Authentication
+
+Protected routes require JWT authentication. To get a test token:
+
+1. In the API docs, find the **`/api/auth/jwt/test`** endpoint
+2. Click **"Send"** to execute the request
+3. Copy the JWT token from the response
+
+**Example response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+}
+```
+
+### 3. Authenticate in Scalar UI
+
+1. At the top of the Scalar UI, look for the **"Authentication"** section
+2. Paste the JWT token you copied to **"Bearer Token"** area
+
+Now all your requests will include the authentication header automatically.
+
+### 5. Feature Flags Configuration
+
+The application behavior can be controlled via environment variables (feature flags):
+
+- **`STREAMING_ENABLED`** (default: `true`) - Enable/disable Server-Sent Events streaming
+- **`PAGINATION_LIMIT`** (default: `20`) - Maximum items per page (10-100)
+- **`AI_TOOLS_ENABLED`** (default: `true`) - Enable/disable AI function calling
+- **`CHAT_HISTORY_ENABLED`** (default: `true`) - Enable/disable chat history in AI context
+
+To modify these settings, edit your `.env` file. For a complete list of available environment variables and their defaults, check the `.env.example` file.
+
+**App will detect .env file changes on runtime.
+
+
+### Known Issues on Scalar UI
+
+- **SSE Routes**: When testing Server-Sent Events (SSE) endpoints in Scalar UI, the response may not display correctly in the UI. To verify SSE responses, check the Network tab in browser DevTools.
+
 ## Project Structure
 
 ```
@@ -113,26 +165,10 @@ Key environment variables (see `.env.example` for full list):
 - `PORT` - Server port (default: 3000)
 - `OPENAI_API_KEY` - Your OpenAI API key
 - `JWT_SECRET` - Secret key for JWT token signing
-- `STREAMING_ENABLED` - Enable/disable streaming responses
-- `CHAT_HISTORY_ENABLED` - Enable/disable chat history
-
-## API Documentation
-
-Once the server is running, navigate to:
-
-**`http://localhost:3000/docs`**
-
-This provides a Swagger/OpenAPI interface with Scalar UI for better developer experience.
-
-#### Known Issues
-
-- **SSE Routes**: When testing Server-Sent Events (SSE) endpoints in Scalar UI, the second trigger may not display in the UI. To verify SSE responses, check the Network tab in browser DevTools
-
-### Getting Started with API
-
-1. **Get JWT Token**: Visit `/api/auth/jwt/test` to obtain a test JWT token
-2. **Authenticate**: Use the token in the Authorization header for protected routes
-3. **Test Endpoints**: Try out all available endpoints directly from the docs
+- `STREAMING_ENABLED` - Enable/disable streaming responses (default: `true`)
+- `PAGINATION_LIMIT` - Maximum items per page (default: `20`)
+- `AI_TOOLS_ENABLED` - Enable/disable AI function calling (default: `false`)
+- `CHAT_HISTORY_ENABLED` - Enable/disable chat history (default: `true`)
 
 
 ## Tech Stack

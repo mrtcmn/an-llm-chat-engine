@@ -22,14 +22,12 @@ function createMockChatService() {
 function createMockMessageRepo() {
   return {
     findByChatId: vi.fn().mockResolvedValue(mockMessages),
-    create: vi
-      .fn()
-      .mockResolvedValue({
-        id: "new-msg",
-        chatId: mockChat.id,
-        role: "user",
-        content: "test",
-      }),
+    create: vi.fn().mockResolvedValue({
+      id: "new-msg",
+      chatId: mockChat.id,
+      role: "user",
+      content: "test",
+    }),
   };
 }
 

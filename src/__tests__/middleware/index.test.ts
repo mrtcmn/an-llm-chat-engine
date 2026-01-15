@@ -122,9 +122,15 @@ describe("Middleware Index", () => {
 
       mockInstance = {
         addHook: vi.fn((hookName: string, handler: preHandlerHookHandler) => {
-          if (handler === mockMiddleware1) callOrder.push(1);
-          if (handler === mockMiddleware2) callOrder.push(2);
-          if (handler === mockMiddleware3) callOrder.push(3);
+          if (handler === mockMiddleware1) {
+            callOrder.push(1);
+          }
+          if (handler === mockMiddleware2) {
+            callOrder.push(2);
+          }
+          if (handler === mockMiddleware3) {
+            callOrder.push(3);
+          }
         }),
       } as unknown as FastifyInstance;
 

@@ -30,14 +30,12 @@ import {
 function createMockMessageRepo() {
   return {
     findByChatId: vi.fn(),
-    create: vi
-      .fn()
-      .mockResolvedValue({
-        id: "msg-id",
-        chatId: mockChat.id,
-        role: "assistant",
-        content: "test",
-      }),
+    create: vi.fn().mockResolvedValue({
+      id: "msg-id",
+      chatId: mockChat.id,
+      role: "assistant",
+      content: "test",
+    }),
   };
 }
 

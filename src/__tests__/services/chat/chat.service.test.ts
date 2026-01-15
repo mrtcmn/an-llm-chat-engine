@@ -111,7 +111,12 @@ describe("ChatService", () => {
       const result = await chatService.getChatHistory(mockChat.id, mockUser.id);
 
       expect(result.chatId).toBe(mockChat.id);
-      expect(result.messages).toBe(mockMessages);
+      expect(result.messages).toEqual(
+        mockMessages.map((msg) => ({
+          ...msg,
+          createdAt: msg.createdAt.toISOString(),
+        }))
+      );
       expect(result.isFullHistory).toBe(true);
     });
 
