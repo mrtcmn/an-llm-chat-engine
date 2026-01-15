@@ -1,10 +1,10 @@
-import type { FastifyRequest, FastifyReply } from 'fastify'
-import type { ChatService } from './chat.service'
-import type { IMessageRepository } from '../../repositories'
-import type { ConfigService } from '@config'
-import { AppError } from '@middleware'
-import type { ResponseStrategyPlugin } from './response-strategy.plugin'
-import type { AIMessage, AICompletionOptions } from '../ai'
+import type { ConfigService } from "@config";
+import { AppError } from "@middleware";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { IMessageRepository } from "../../repositories";
+import type { AICompletionOptions, AIMessage } from "../ai";
+import type { ChatService } from "./chat.service";
+import type { ResponseStrategyPlugin } from "./response-strategy.plugin";
 
 export class CompletionService {
   constructor(
@@ -19,51 +19,57 @@ export class CompletionService {
     reply: FastifyReply,
     chatId: string,
     userMessage: string,
-    userId: string,
+    userId: string
   ) {
     if (!userMessage.trim()) {
-      throw AppError.badRequest('Message cannot be empty')
+      throw AppError.badRequest("Message cannot be empty");
     }
 
     // Get feature flags
-    const streamingEnabled = this.config.getFeatureFlag('streamingEnabled')
-    const aiToolsEnabled = this.config.getFeatureFlag('aiToolsEnabled')
-    const chatHistoryEnabled = this.config.getFeatureFlag('chatHistoryEnabled')
+    const streamingEnabled = this.config.getFeatureFlag("streamingEnabled");
+    const aiToolsEnabled = this.config.getFeatureFlag("aiToolsEnabled");
+    const chatHistoryEnabled = this.config.getFeatureFlag("chatHistoryEnabled");
 
-    req.logger.info('Processing completion request', {
+    req.logger.info("Processing completion request", {
       chatId,
       featureFlags: {
         streamingEnabled,
         aiToolsEnabled,
         chatHistoryEnabled,
       },
-    })
+    });
 
-    await this.chatService.getOrCreateChat(chatId, userId)
+    await this.chatService.getOrCreateChat(chatId, userId);
 
     await this.messageRepo.create({
       chatId,
-      role: 'user',
-      content: userMessage
-    })
+      role: "user",
+      content: userMessage,
+    });
 
-    const history = await this.messageRepo.findByChatId(chatId)
+    const history = await this.messageRepo.findByChatId(chatId);
 
     const messages: AIMessage[] = [
       {
-        role: 'system',
-        content: 'You are a helpful AI assistant. Be concise and helpful.'
+        role: "system",
+        content: "You are a helpful AI assistant. Be concise and helpful.",
       },
-      ...history.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content
-      }))
-    ]
+      ...history.map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+    ];
 
     const aiOptions: AICompletionOptions = {
-      tools: aiToolsEnabled
-    }
+      tools: aiToolsEnabled,
+    };
 
-    return this.responseStrategy.execute(req, reply, chatId, messages, aiOptions)
+    return this.responseStrategy.execute(
+      req,
+      reply,
+      chatId,
+      messages,
+      aiOptions
+    );
   }
 }

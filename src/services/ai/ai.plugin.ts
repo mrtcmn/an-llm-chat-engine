@@ -1,12 +1,12 @@
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
-import fp from 'fastify-plugin'
-import { AIService } from './ai.service'
-import { OpenAIProvider } from './strategies'
-import type { AIProvider } from './ai.types'
+import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+import fp from "fastify-plugin";
+import { AIService } from "./ai.service";
+import type { AIProvider } from "./ai.types";
+import { OpenAIProvider } from "./strategies";
 
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyInstance {
-    ai: AIService
+    ai: AIService;
   }
 }
 
@@ -19,17 +19,17 @@ declare module 'fastify' {
  */
 const aiPlugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // Get config from Fastify instance (DI pattern)
-  const config = fastify.config
+  const config = fastify.config;
 
-  fastify.log.info('[AIPlugin] Initializing AI service...')
+  fastify.log.info("[AIPlugin] Initializing AI service...");
 
   // Create providers (inject config)
-  const providers: AIProvider[] = []
+  const providers: AIProvider[] = [];
 
   // OpenAI provider (primary)
-  const openaiApiKey = config.get('OPENAI_API_KEY')
-  const openaiProvider = new OpenAIProvider(openaiApiKey)
-  providers.push(openaiProvider)
+  const openaiApiKey = config.get("OPENAI_API_KEY");
+  const openaiProvider = new OpenAIProvider(openaiApiKey);
+  providers.push(openaiProvider);
 
   // Future: Add more providers here
   // const anthropicApiKey = config.get('ANTHROPIC_API_KEY')
@@ -38,23 +38,23 @@ const aiPlugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // }
 
   // Initialize AI service with providers
-  const aiService = AIService.initialize(providers)
+  const aiService = AIService.initialize(providers);
 
   // Log registered providers
-  const providerNames = aiService.getProviderNames()
+  const providerNames = aiService.getProviderNames();
   fastify.log.info(
     { providers: providerNames },
-    '[AIPlugin] AI service initialized with providers'
-  )
+    "[AIPlugin] AI service initialized with providers"
+  );
 
   // Decorate Fastify instance with AI service
-  fastify.decorate('ai', aiService)
+  fastify.decorate("ai", aiService);
 
-  fastify.log.info('[AIPlugin] AI plugin registered')
-}
+  fastify.log.info("[AIPlugin] AI plugin registered");
+};
 
 export default fp(aiPlugin, {
-  name: 'ai-plugin',
-  fastify: '5.x',
-  dependencies: ['config-plugin'], // Explicitly declare dependency on config plugin
-})
+  name: "ai-plugin",
+  fastify: "5.x",
+  dependencies: ["config-plugin"], // Explicitly declare dependency on config plugin
+});

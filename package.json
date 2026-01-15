@@ -13,7 +13,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --fix",
+    "format": "ultracite format",
+    "format:fix": "ultracite fix"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -39,6 +43,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.11",
     "@types/node": "^25.0.7",
     "@types/pg": "^8.16.0",
     "@types/ua-parser-js": "^0.7.39",
@@ -47,6 +52,7 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "ultracite": "^7.0.11",
     "vitest": "^4.0.17"
   }
 }

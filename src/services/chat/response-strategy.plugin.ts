@@ -1,8 +1,8 @@
-import type { FastifyRequest, FastifyReply } from 'fastify'
-import type { ConfigService } from '@config'
-import type { IMessageRepository } from '../../repositories'
-import type { AIMessage, AICompletionOptions } from '../ai'
-import { streamingStrategy, regularStrategy } from './strategies'
+import type { ConfigService } from "@config";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { IMessageRepository } from "../../repositories";
+import type { AICompletionOptions, AIMessage } from "../ai";
+import { regularStrategy, streamingStrategy } from "./strategies";
 
 /**
  * Response Strategy Plugin
@@ -21,30 +21,46 @@ export class ResponseStrategyPlugin {
     messages: AIMessage[],
     aiOptions: AICompletionOptions
   ) {
-    const streamingEnabled = this.config.getFeatureFlag('streamingEnabled')
+    const streamingEnabled = this.config.getFeatureFlag("streamingEnabled");
 
     if (streamingEnabled) {
-      const streamResult = await streamingStrategy(req, reply, chatId, messages, aiOptions)
-      
+      const streamResult = await streamingStrategy(
+        req,
+        reply,
+        chatId,
+        messages,
+        aiOptions
+      );
+
       await this.messageRepo.create({
         chatId,
-        role: 'assistant',
+        role: "assistant",
         content: streamResult.content,
-        metadata: streamResult.toolCalls ? { toolCalls: streamResult.toolCalls } : undefined
-      })
-      
-      return reply
+        metadata: streamResult.toolCalls
+          ? { toolCalls: streamResult.toolCalls }
+          : undefined,
+      });
+
+      return reply;
     }
 
-    const response = await regularStrategy(req, reply, chatId, messages, aiOptions)
+    const response = await regularStrategy(
+      req,
+      reply,
+      chatId,
+      messages,
+      aiOptions
+    );
 
     await this.messageRepo.create({
       chatId,
-      role: 'assistant',
+      role: "assistant",
       content: response.content,
-      metadata: response.toolCalls ? { toolCalls: response.toolCalls } : undefined
-    })
+      metadata: response.toolCalls
+        ? { toolCalls: response.toolCalls }
+        : undefined,
+    });
 
-    return response
+    return response;
   }
 }

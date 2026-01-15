@@ -1,4 +1,4 @@
-import type { DatabaseStrategy, PoolStats } from "./database.strategy";
+import type { DatabaseStrategy } from "./database.strategy";
 
 export class DatabaseService implements DatabaseStrategy {
   private static instance: DatabaseService;
@@ -15,7 +15,7 @@ export class DatabaseService implements DatabaseStrategy {
   static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
       throw new Error(
-        "DatabaseService not initialized. Call initialize() first.",
+        "DatabaseService not initialized. Call initialize() first."
       );
     }
     return DatabaseService.instance;
@@ -44,5 +44,4 @@ export class DatabaseService implements DatabaseStrategy {
   async isConnected(): Promise<boolean> {
     return this.strategy.isConnected();
   }
-
 }

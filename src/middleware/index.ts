@@ -1,26 +1,26 @@
 import type { FastifyInstance, preHandlerHookHandler } from "fastify";
 
-// Export all middleware
-export { authMiddleware } from "./auth.middleware.js";
-export type { JwtUserPayload } from "./auth.middleware.js";
-export { clientDetectionMiddleware } from "./client-detection.middleware.js";
-export type { ClientType } from "./client-detection.middleware.js";
 export {
-  paramSchemas,
   bodySchemas,
+  paramSchemas,
   querySchemas,
   responseSchemas,
   routeSchemas,
 } from "../schemas/index.js";
+export type { JwtUserPayload } from "./auth.middleware.js";
+// Export all middleware
+export { authMiddleware } from "./auth.middleware.js";
+export type { ClientType } from "./client-detection.middleware.js";
+export { clientDetectionMiddleware } from "./client-detection.middleware.js";
+export type { ErrorResponse } from "./error-handler.middleware.js";
 export {
+  AppError,
   errorHandler,
   notFoundHandler,
-  AppError,
 } from "./error-handler.middleware.js";
-export type { ErrorResponse } from "./error-handler.middleware.js";
-export { rateLimitMiddleware } from "./rate-limit.middleware.js";
-export type { RouteRateLimitConfig } from "./rate-limit.middleware.js";
 export { loggingMiddleware } from "./logging.middleware.js";
+export type { RouteRateLimitConfig } from "./rate-limit.middleware.js";
+export { rateLimitMiddleware } from "./rate-limit.middleware.js";
 export { requestContextMiddleware } from "./request-context.middleware.js";
 
 /**
@@ -32,7 +32,7 @@ export { requestContextMiddleware } from "./request-context.middleware.js";
  * 3. Request validation - Validates request schema (handled by Fastify schema)
  * 4. Error handling - Catches and formats errors (global handler)
  * 5. Logging - Logs request/response details
- * 
+ *
  * Global middleware (registered at app level):
  * - Request context - Sets request/correlation IDs (via plugin hook)
  * - Rate limiter - Checks IP-based rate limits early, blocks restricted IPs before route processing (via global hook)
@@ -64,7 +64,7 @@ export { requestContextMiddleware } from "./request-context.middleware.js";
  */
 export function registerMiddlewareChain(
   instance: FastifyInstance,
-  chain: preHandlerHookHandler[],
+  chain: preHandlerHookHandler[]
 ): void {
   for (const middleware of chain) {
     instance.addHook("preHandler", middleware);

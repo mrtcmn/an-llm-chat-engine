@@ -1,2 +1,2 @@
-export { LoggerService } from './logger.service'
-export * from './logger.types'
+export { LoggerService } from "./logger.service";
+export * from "./logger.types";

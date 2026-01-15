@@ -1,1 +1,1 @@
-export { default as loggerPlugin } from './logger.plugin'
+export { default as loggerPlugin } from "./logger.plugin";

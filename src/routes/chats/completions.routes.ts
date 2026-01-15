@@ -1,11 +1,11 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
-  registerMiddlewareChain,
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
+  registerMiddlewareChain,
   routeSchemas,
 } from "@middleware";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 interface CreateCompletionRequest {
   Params: {
@@ -19,7 +19,9 @@ interface CreateCompletionRequest {
 /**
  * Chat completions routes - POST /chats/:chatId/completion
  */
-export async function completionsRoutes(fastify: FastifyInstance): Promise<void> {
+export async function completionsRoutes(
+  fastify: FastifyInstance
+): Promise<void> {
   registerMiddlewareChain(fastify, [
     authMiddleware,
     clientDetectionMiddleware,
@@ -31,7 +33,10 @@ export async function completionsRoutes(fastify: FastifyInstance): Promise<void>
     {
       schema: routeSchemas.createCompletion,
     },
-    async (req: FastifyRequest<CreateCompletionRequest>, reply: FastifyReply) => {
+    async (
+      req: FastifyRequest<CreateCompletionRequest>,
+      reply: FastifyReply
+    ) => {
       const { chatId } = req.params;
       const { message } = req.body;
       const userId = req.user!.sub;
@@ -41,9 +46,9 @@ export async function completionsRoutes(fastify: FastifyInstance): Promise<void>
         reply,
         chatId,
         message,
-        userId,
+        userId
       );
-    },
+    }
   );
 
   fastify.log.info("Completion routes registered");

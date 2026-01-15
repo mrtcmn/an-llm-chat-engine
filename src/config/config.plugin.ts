@@ -1,24 +1,24 @@
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify'
-import fp from 'fastify-plugin'
-import { ConfigService } from './config.service'
+import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+import fp from "fastify-plugin";
+import { ConfigService } from "./config.service";
 
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyInstance {
-    config: ConfigService
+    config: ConfigService;
   }
 }
 
 const configPlugin: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // Initialize ConfigService singleton
-  const config = ConfigService.getInstance()
+  const config = ConfigService.getInstance();
 
   // Decorate Fastify instance with config
-  fastify.decorate('config', config)
+  fastify.decorate("config", config);
 
-  fastify.log.info('[ConfigPlugin] Configuration loaded')
-}
+  fastify.log.info("[ConfigPlugin] Configuration loaded");
+};
 
 export default fp(configPlugin, {
-  name: 'config-plugin',
-  fastify: '5.x',
-})
+  name: "config-plugin",
+  fastify: "5.x",
+});

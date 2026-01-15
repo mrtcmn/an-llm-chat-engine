@@ -1,11 +1,13 @@
-import { vi } from 'vitest'
-import type { DatabaseService } from '../../services/database/database.service'
-import type { PrismaService } from '../../services/database/prisma.service'
-import { createMockPrismaClient, type MockPrismaClient } from './prisma.mock'
+import { vi } from "vitest";
+import type { DatabaseService } from "../../services/database/database.service";
+import type { PrismaService } from "../../services/database/prisma.service";
+import { createMockPrismaClient, type MockPrismaClient } from "./prisma.mock";
 
-export function createMockDatabaseService(mockPrisma?: MockPrismaClient): DatabaseService {
-  const prismaClient = mockPrisma || createMockPrismaClient()
-  
+export function createMockDatabaseService(
+  mockPrisma?: MockPrismaClient
+): DatabaseService {
+  const prismaClient = mockPrisma || createMockPrismaClient();
+
   const mockPrismaService: PrismaService = {
     client: prismaClient as any,
     connect: vi.fn(),
@@ -13,7 +15,7 @@ export function createMockDatabaseService(mockPrisma?: MockPrismaClient): Databa
     reconnect: vi.fn(),
     healthCheck: vi.fn(),
     isConnected: vi.fn(),
-  } as any
+  } as any;
 
   const mockDb: DatabaseService = {
     getStrategy: vi.fn().mockReturnValue(mockPrismaService),
@@ -22,7 +24,7 @@ export function createMockDatabaseService(mockPrisma?: MockPrismaClient): Databa
     reconnect: vi.fn(),
     healthCheck: vi.fn(),
     isConnected: vi.fn(),
-  } as any
+  } as any;
 
-  return mockDb
+  return mockDb;
 }

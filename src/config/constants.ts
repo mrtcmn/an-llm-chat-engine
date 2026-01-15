@@ -61,15 +61,15 @@ export const DATABASE = {
   DEFAULT_POOL_MAX: 10,
 
   // Timeouts
-  DEFAULT_CONNECTION_TIMEOUT: 30000, // 30 seconds
-  DEFAULT_IDLE_TIMEOUT: 10000, // 10 seconds
+  DEFAULT_CONNECTION_TIMEOUT: 30_000, // 30 seconds
+  DEFAULT_IDLE_TIMEOUT: 10_000, // 10 seconds
 
   // Retry configuration
   DEFAULT_MAX_RETRY_ATTEMPTS: 5,
   DEFAULT_RETRY_BASE_DELAY: 1000, // 1 second
 
   // Health check
-  DEFAULT_HEALTH_CHECK_INTERVAL: 30000, // 30 seconds
+  DEFAULT_HEALTH_CHECK_INTERVAL: 30_000, // 30 seconds
 } as const;
 
 /**
@@ -167,7 +167,6 @@ export const ERROR_CODES = {
   AI_TIMEOUT: "AI_TIMEOUT",
   INVALID_AI_RESPONSE: "INVALID_AI_RESPONSE",
 } as const;
-
 
 /**
  * Export all constants as a single object for convenience

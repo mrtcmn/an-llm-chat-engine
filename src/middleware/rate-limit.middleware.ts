@@ -1,7 +1,7 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
-import { AppError } from "./error-handler.middleware.js";
-import type { JwtUserPayload } from "./auth.middleware.js";
 import { RATE_LIMITS } from "@config";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { JwtUserPayload } from "./auth.middleware.js";
+import { AppError } from "./error-handler.middleware.js";
 
 interface RateLimitEntry {
   count: number;
@@ -41,7 +41,11 @@ class RateLimitStore {
     setInterval(() => this.cleanup(), 5 * 60 * 1000).unref();
   }
 
-  check(key: string, limit: number, windowMs: number): { allowed: boolean; remaining: number; resetAt: number } {
+  check(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): { allowed: boolean; remaining: number; resetAt: number } {
     const now = Date.now();
     const entry = this.store.get(key);
 
@@ -57,7 +61,11 @@ class RateLimitStore {
     }
 
     entry.count++;
-    return { allowed: true, remaining: limit - entry.count, resetAt: entry.resetAt };
+    return {
+      allowed: true,
+      remaining: limit - entry.count,
+      resetAt: entry.resetAt,
+    };
   }
 
   private cleanup(): void {
@@ -111,7 +119,7 @@ function setRateLimitHeaders(
   reply: FastifyReply,
   limit: number,
   remaining: number,
-  resetAt: number,
+  resetAt: number
 ): void {
   reply.header("X-RateLimit-Limit", limit);
   reply.header("X-RateLimit-Remaining", remaining);
@@ -124,7 +132,7 @@ function setRateLimitHeaders(
 function setRateLimitExceededHeaders(
   reply: FastifyReply,
   limit: number,
-  resetAt: number,
+  resetAt: number
 ): void {
   setRateLimitHeaders(reply, limit, 0, resetAt);
   const retryAfterSeconds = Math.ceil((resetAt - Date.now()) / 1000);
@@ -137,23 +145,25 @@ function setRateLimitExceededHeaders(
  * 1. IP-based (15min/500req) - prevents abuse from single IP
  * 2. User-based (1min/60req) - prevents single user flooding
  * 3. User+Route (1min/20req) - prevents hammering specific endpoints
- * 
+ *
  * Supports route-specific configuration via req.routeConfig.rateLimit
  */
 export async function rateLimitMiddleware(
   req: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> {
   const ip = req.ip;
   const user = req.user as JwtUserPayload | undefined;
   const routeHash = getRouteHash(req);
-  
+
   // Get route-specific configuration
   const routeConfig = req.routeConfig?.rateLimit;
-  
+
   // Allow routes to completely disable rate limiting
   if (routeConfig?.enabled === false) {
-    req.logger.debug("[Middleware] RateLimit: disabled for this route", { route: routeHash });
+    req.logger.debug("[Middleware] RateLimit: disabled for this route", {
+      route: routeHash,
+    });
     return;
   }
 
@@ -162,7 +172,9 @@ export async function rateLimitMiddleware(
   const routeWindow = routeConfig?.customWindow ?? LIMITS.route.windowMs;
 
   // Tier 1: IP-based limit (unless explicitly skipped)
-  let ipResult: { allowed: boolean; remaining: number; resetAt: number } | undefined;
+  let ipResult:
+    | { allowed: boolean; remaining: number; resetAt: number }
+    | undefined;
   if (!routeConfig?.skipIpCheck) {
     const ipKey = `ip:${ip}`;
     ipResult = store.check(ipKey, LIMITS.ip.limit, LIMITS.ip.windowMs);
@@ -181,11 +193,21 @@ export async function rateLimitMiddleware(
     // Tier 2: User limit (unless explicitly skipped)
     if (!routeConfig?.skipUserCheck) {
       const userKey = `user:${userId}`;
-      const userResult = store.check(userKey, LIMITS.user.limit, LIMITS.user.windowMs);
+      const userResult = store.check(
+        userKey,
+        LIMITS.user.limit,
+        LIMITS.user.windowMs
+      );
 
       if (!userResult.allowed) {
-        req.logger.warn("[Middleware] RateLimit: user rate limit exceeded", { userId });
-        setRateLimitExceededHeaders(reply, LIMITS.user.limit, userResult.resetAt);
+        req.logger.warn("[Middleware] RateLimit: user rate limit exceeded", {
+          userId,
+        });
+        setRateLimitExceededHeaders(
+          reply,
+          LIMITS.user.limit,
+          userResult.resetAt
+        );
         throw AppError.tooManyRequests("Too many requests");
       }
     }
@@ -195,33 +217,46 @@ export async function rateLimitMiddleware(
     const routeResult = store.check(routeKey, routeLimit, routeWindow);
 
     // Set headers based on most restrictive limit
-    setRateLimitHeaders(reply, routeLimit, routeResult.remaining, routeResult.resetAt);
+    setRateLimitHeaders(
+      reply,
+      routeLimit,
+      routeResult.remaining,
+      routeResult.resetAt
+    );
 
     if (!routeResult.allowed) {
-      req.logger.warn("[Middleware] RateLimit: route rate limit exceeded", { 
-        userId, 
+      req.logger.warn("[Middleware] RateLimit: route rate limit exceeded", {
+        userId,
         route: routeHash,
-        customLimit: routeConfig?.customLimit 
+        customLimit: routeConfig?.customLimit,
       });
       setRateLimitExceededHeaders(reply, routeLimit, routeResult.resetAt);
       throw AppError.tooManyRequests("Too many requests to this endpoint");
     }
 
-    req.logger.debug("[Middleware] RateLimit: rate limit check passed", { 
-      userId, 
+    req.logger.debug("[Middleware] RateLimit: rate limit check passed", {
+      userId,
       route: routeHash,
       remaining: routeResult.remaining,
-      limit: routeLimit 
+      limit: routeLimit,
     });
   } else {
     // Unauthenticated: only IP limit headers (already checked above)
     if (ipResult) {
-      setRateLimitHeaders(reply, LIMITS.ip.limit, ipResult.remaining, ipResult.resetAt);
+      setRateLimitHeaders(
+        reply,
+        LIMITS.ip.limit,
+        ipResult.remaining,
+        ipResult.resetAt
+      );
     }
 
-    req.logger.debug("[Middleware] RateLimit: rate limit check passed (unauthenticated)", { 
-      ip,
-      remaining: ipResult?.remaining 
-    });
+    req.logger.debug(
+      "[Middleware] RateLimit: rate limit check passed (unauthenticated)",
+      {
+        ip,
+        remaining: ipResult?.remaining,
+      }
+    );
   }
 }

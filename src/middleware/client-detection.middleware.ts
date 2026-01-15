@@ -1,4 +1,4 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { UAParser } from "ua-parser-js";
 
 export type ClientType = "web" | "mobile" | "desktop" | "unknown";
@@ -26,7 +26,12 @@ function parseUserAgent(userAgent: string | undefined): ClientType {
     }
 
     if (ua.includes("desktop")) {
-      if (os.name && ["Windows", "Mac OS", "Linux", "Ubuntu", "Debian", "Fedora"].includes(os.name)) {
+      if (
+        os.name &&
+        ["Windows", "Mac OS", "Linux", "Ubuntu", "Debian", "Fedora"].includes(
+          os.name
+        )
+      ) {
         return "desktop";
       }
       return "desktop";
@@ -36,7 +41,12 @@ function parseUserAgent(userAgent: string | undefined): ClientType {
       return "mobile";
     }
 
-    if (os.name && ["Android", "iOS", "Windows Phone", "BlackBerry", "webOS"].includes(os.name)) {
+    if (
+      os.name &&
+      ["Android", "iOS", "Windows Phone", "BlackBerry", "webOS"].includes(
+        os.name
+      )
+    ) {
       return "mobile";
     }
 
@@ -52,16 +62,37 @@ function parseUserAgent(userAgent: string | undefined): ClientType {
 
     if (browser.name) {
       const webBrowsers = [
-        "Chrome", "Firefox", "Safari", "Edge", "Opera", "IE", 
-        "Chromium", "Brave", "Vivaldi", "Arc", "Samsung Browser", "Mobile Safari"
+        "Chrome",
+        "Firefox",
+        "Safari",
+        "Edge",
+        "Opera",
+        "IE",
+        "Chromium",
+        "Brave",
+        "Vivaldi",
+        "Arc",
+        "Samsung Browser",
+        "Mobile Safari",
       ];
-      
-      if (webBrowsers.some(b => browser.name?.includes(b))) {
+
+      if (webBrowsers.some((b) => browser.name?.includes(b))) {
         return "web";
       }
     }
 
-    if (os.name && ["Windows", "Mac OS", "Linux", "Ubuntu", "Debian", "Fedora", "Chrome OS"].includes(os.name)) {
+    if (
+      os.name &&
+      [
+        "Windows",
+        "Mac OS",
+        "Linux",
+        "Ubuntu",
+        "Debian",
+        "Fedora",
+        "Chrome OS",
+      ].includes(os.name)
+    ) {
       return "web";
     }
 
@@ -83,7 +114,7 @@ function parseUserAgent(userAgent: string | undefined): ClientType {
 
 export async function clientDetectionMiddleware(
   req: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> {
   try {
     const headerClientType = req.headers["x-client-type"] as string | undefined;
@@ -98,11 +129,16 @@ export async function clientDetectionMiddleware(
 
     req.clientType = clientType;
 
-    req.logger.debug("[Middleware] ClientDetection: client type detected", { clientType });
-  } catch (error) {
-    req.logger.info("[Middleware] ClientDetection: failed to detect client type, using unknown", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    req.logger.debug("[Middleware] ClientDetection: client type detected", {
+      clientType,
     });
+  } catch (error) {
+    req.logger.info(
+      "[Middleware] ClientDetection: failed to detect client type, using unknown",
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      }
+    );
     req.clientType = "unknown";
   }
 }

@@ -1,5 +1,5 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
 import { REQUEST } from "@config/constants";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 /**
  * Extend Fastify types to include correlation ID
@@ -20,7 +20,7 @@ declare module "fastify" {
  */
 export async function requestContextMiddleware(
   req: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> {
   // Extract correlation ID from header or use request ID as fallback
   const correlationId =
@@ -33,8 +33,8 @@ export async function requestContextMiddleware(
   reply.header(REQUEST.REQUEST_ID_HEADER, req.id);
   reply.header(REQUEST.CORRELATION_ID_HEADER, correlationId);
 
-  req.logger.debug("[Middleware] RequestContext: context initialized", { 
-    requestId: req.id, 
-    correlationId 
+  req.logger.debug("[Middleware] RequestContext: context initialized", {
+    requestId: req.id,
+    correlationId,
   });
 }

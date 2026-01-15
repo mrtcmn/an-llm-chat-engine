@@ -1,5 +1,5 @@
-import type { PrismaClient, Message } from '@generated/prisma/client'
-import type { IMessageRepository, FindByChatIdOptions } from '../../interfaces'
+import type { Message, PrismaClient } from "@generated/prisma/client";
+import type { FindByChatIdOptions, IMessageRepository } from "../../interfaces";
 
 export class MessagePrismaRepositoryImpl implements IMessageRepository {
   constructor(private prisma: PrismaClient) {}
@@ -10,17 +10,17 @@ export class MessagePrismaRepositoryImpl implements IMessageRepository {
   ): Promise<Message[]> {
     return this.prisma.message.findMany({
       where: { chatId, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-      ...(options.limit && { take: options.limit })
-    })
+      orderBy: { createdAt: "asc" },
+      ...(options.limit && { take: options.limit }),
+    });
   }
 
   async create(data: {
-    chatId: string
-    role: string
-    content: string
-    metadata?: any
+    chatId: string;
+    role: string;
+    content: string;
+    metadata?: any;
   }): Promise<Message> {
-    return this.prisma.message.create({ data })
+    return this.prisma.message.create({ data });
   }
 }

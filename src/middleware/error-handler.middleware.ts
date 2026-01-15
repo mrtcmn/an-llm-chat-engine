@@ -1,5 +1,5 @@
+import { ERROR_CODES, HTTP_STATUS } from "@config";
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
-import { HTTP_STATUS, ERROR_CODES } from "@config";
 
 export interface ErrorResponse {
   error: string;
@@ -33,7 +33,7 @@ export class AppError extends Error {
     public error: string,
     message: string,
     public details?: unknown,
-    context?: ErrorContext,
+    context?: ErrorContext
   ) {
     super(message);
     this.name = "AppError";
@@ -42,53 +42,112 @@ export class AppError extends Error {
     this.context = context;
   }
 
-  static badRequest(message: string, details?: unknown, context?: ErrorContext): AppError {
+  static badRequest(
+    message: string,
+    details?: unknown,
+    context?: ErrorContext
+  ): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "validation";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.VALIDATION_ERROR;
-    return new AppError(HTTP_STATUS.BAD_REQUEST, "Bad Request", message, details, ctx);
+    return new AppError(
+      HTTP_STATUS.BAD_REQUEST,
+      "Bad Request",
+      message,
+      details,
+      ctx
+    );
   }
 
-  static unauthorized(message: string = "Unauthorized", context?: ErrorContext): AppError {
+  static unauthorized(
+    message = "Unauthorized",
+    context?: ErrorContext
+  ): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "authentication";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.UNAUTHORIZED;
-    return new AppError(HTTP_STATUS.UNAUTHORIZED, "Unauthorized", message, undefined, ctx);
+    return new AppError(
+      HTTP_STATUS.UNAUTHORIZED,
+      "Unauthorized",
+      message,
+      undefined,
+      ctx
+    );
   }
 
-  static forbidden(message: string = "Forbidden", context?: ErrorContext): AppError {
+  static forbidden(message = "Forbidden", context?: ErrorContext): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "authorization";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.FORBIDDEN;
-    return new AppError(HTTP_STATUS.FORBIDDEN, "Forbidden", message, undefined, ctx);
+    return new AppError(
+      HTTP_STATUS.FORBIDDEN,
+      "Forbidden",
+      message,
+      undefined,
+      ctx
+    );
   }
 
-  static notFound(resource: string = "Resource", context?: ErrorContext): AppError {
+  static notFound(resource = "Resource", context?: ErrorContext): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "not_found";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.NOT_FOUND;
-    return new AppError(HTTP_STATUS.NOT_FOUND, "Not Found", `${resource} not found`, undefined, ctx);
+    return new AppError(
+      HTTP_STATUS.NOT_FOUND,
+      "Not Found",
+      `${resource} not found`,
+      undefined,
+      ctx
+    );
   }
 
-  static conflict(message: string, details?: unknown, context?: ErrorContext): AppError {
+  static conflict(
+    message: string,
+    details?: unknown,
+    context?: ErrorContext
+  ): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "conflict";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.CONFLICT;
-    return new AppError(HTTP_STATUS.CONFLICT, "Conflict", message, details, ctx);
+    return new AppError(
+      HTTP_STATUS.CONFLICT,
+      "Conflict",
+      message,
+      details,
+      ctx
+    );
   }
 
-  static tooManyRequests(message: string = "Too many requests", context?: ErrorContext): AppError {
+  static tooManyRequests(
+    message = "Too many requests",
+    context?: ErrorContext
+  ): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "rate_limit";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.RATE_LIMIT_EXCEEDED;
-    return new AppError(HTTP_STATUS.TOO_MANY_REQUESTS, "Too Many Requests", message, undefined, ctx);
+    return new AppError(
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      "Too Many Requests",
+      message,
+      undefined,
+      ctx
+    );
   }
 
-  static internal(message: string = "Internal server error", context?: ErrorContext): AppError {
+  static internal(
+    message = "Internal server error",
+    context?: ErrorContext
+  ): AppError {
     const ctx = context || {};
     ctx.errorCategory = ctx.errorCategory || "internal";
     ctx.errorCode = ctx.errorCode || ERROR_CODES.INTERNAL_ERROR;
-    return new AppError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Internal Server Error", message, undefined, ctx);
+    return new AppError(
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      "Internal Server Error",
+      message,
+      undefined,
+      ctx
+    );
   }
 }
 
@@ -111,7 +170,7 @@ function getStatusCode(error: FastifyError | Error): number {
 export async function errorHandler(
   error: FastifyError,
   req: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> {
   const statusCode = getStatusCode(error);
 
@@ -179,9 +238,10 @@ export async function errorHandler(
   }
 
   if (req.logger) {
-    const logMessage = error instanceof AppError && error.context?.operation
-      ? `Error in ${error.context.operation}: ${error.message}`
-      : error.message;
+    const logMessage =
+      error instanceof AppError && error.context?.operation
+        ? `Error in ${error.context.operation}: ${error.message}`
+        : error.message;
 
     if (statusCode >= 500) {
       req.logger.error(logMessage, error, logContext);
@@ -192,7 +252,14 @@ export async function errorHandler(
 
   const response: ErrorResponse = {
     error: error instanceof AppError ? error.error : getErrorName(statusCode),
-    message: error instanceof AppError && statusCode >= 500 ? "Internal server error" : (error instanceof AppError ? error.message : (statusCode >= 500 ? "Internal server error" : error.message)),
+    message:
+      error instanceof AppError && statusCode >= 500
+        ? "Internal server error"
+        : error instanceof AppError
+          ? error.message
+          : statusCode >= 500
+            ? "Internal server error"
+            : error.message,
     statusCode,
   };
 
@@ -226,8 +293,14 @@ function getErrorName(statusCode: number): string {
   return names[statusCode] || "Error";
 }
 
-export function notFoundHandler(req: FastifyRequest, reply: FastifyReply): void {
-  req.logger?.debug("[Middleware] NotFound: route not found", { url: req.url, method: req.method });
+export function notFoundHandler(
+  req: FastifyRequest,
+  reply: FastifyReply
+): void {
+  req.logger?.debug("[Middleware] NotFound: route not found", {
+    url: req.url,
+    method: req.method,
+  });
 
   reply.status(404).send({
     error: "Not Found",

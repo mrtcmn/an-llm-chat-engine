@@ -1,8 +1,8 @@
-import type { FastifyInstance } from "fastify";
-import fp from "fastify-plugin";
+import { API } from "@config";
 import fastifySwagger from "@fastify/swagger";
 import scalarFastify from "@scalar/fastify-api-reference";
-import { API } from "@config";
+import type { FastifyInstance } from "fastify";
+import fp from "fastify-plugin";
 
 /**
  * Swagger/OpenAPI plugin with Scalar UI

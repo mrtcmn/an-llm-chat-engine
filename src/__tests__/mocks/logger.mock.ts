@@ -1,11 +1,11 @@
-import { vi } from 'vitest'
+import { vi } from "vitest";
 
 export interface MockBoundLogger {
-  info: ReturnType<typeof vi.fn>
-  warn: ReturnType<typeof vi.fn>
-  error: ReturnType<typeof vi.fn>
-  debug: ReturnType<typeof vi.fn>
-  child: ReturnType<typeof vi.fn>
+  info: ReturnType<typeof vi.fn>;
+  warn: ReturnType<typeof vi.fn>;
+  error: ReturnType<typeof vi.fn>;
+  debug: ReturnType<typeof vi.fn>;
+  child: ReturnType<typeof vi.fn>;
 }
 
 export function createMockLogger(): MockBoundLogger {
@@ -14,30 +14,30 @@ export function createMockLogger(): MockBoundLogger {
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
-    child: vi.fn()
-  }
+    child: vi.fn(),
+  };
 
-  mockLogger.child.mockReturnValue(mockLogger)
+  mockLogger.child.mockReturnValue(mockLogger);
 
-  return mockLogger
+  return mockLogger;
 }
 
 export function resetMockLogger(mock: MockBoundLogger): void {
-  mock.info.mockReset()
-  mock.warn.mockReset()
-  mock.error.mockReset()
-  mock.debug.mockReset()
-  mock.child.mockReset().mockReturnValue(mock)
+  mock.info.mockReset();
+  mock.warn.mockReset();
+  mock.error.mockReset();
+  mock.debug.mockReset();
+  mock.child.mockReset().mockReturnValue(mock);
 }
 
 export interface MockLoggerService {
-  forService: ReturnType<typeof vi.fn>
-  forRequest: ReturnType<typeof vi.fn>
-  getBaseLogger: ReturnType<typeof vi.fn>
+  forService: ReturnType<typeof vi.fn>;
+  forRequest: ReturnType<typeof vi.fn>;
+  getBaseLogger: ReturnType<typeof vi.fn>;
 }
 
 export function createMockLoggerService(): MockLoggerService {
-  const mockBoundLogger = createMockLogger()
+  const mockBoundLogger = createMockLogger();
 
   return {
     forService: vi.fn().mockReturnValue(mockBoundLogger),
@@ -46,7 +46,7 @@ export function createMockLoggerService(): MockLoggerService {
       info: vi.fn(),
       warn: vi.fn(),
       error: vi.fn(),
-      debug: vi.fn()
-    })
-  }
+      debug: vi.fn(),
+    }),
+  };
 }

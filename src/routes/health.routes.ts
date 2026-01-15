@@ -1,5 +1,4 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 export async function healthRoutes(fastify: FastifyInstance): Promise<void> {
   /**

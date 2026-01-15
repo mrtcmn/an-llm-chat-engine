@@ -1,5 +1,11 @@
-import type { AIMessage, AIResponse, StreamChunk, AICompletionOptions, AIProvider } from './ai.types'
-import { LoggerService } from '@utils/logger'
+import { LoggerService } from "@utils/logger";
+import type {
+  AICompletionOptions,
+  AIMessage,
+  AIProvider,
+  AIResponse,
+  StreamChunk,
+} from "./ai.types";
 
 /**
  * AI Service
@@ -7,19 +13,19 @@ import { LoggerService } from '@utils/logger'
  * Currently uses first provider (primary), future: failover support
  */
 export class AIService {
-  private static instance: AIService
-  private providers: AIProvider[]
-  private logger = LoggerService.getInstance().forService('AIService')
+  private static instance: AIService;
+  private providers: AIProvider[];
+  private logger = LoggerService.getInstance().forService("AIService");
 
   constructor(providers: AIProvider[]) {
     if (providers.length === 0) {
-      throw new Error('AIService requires at least one provider')
+      throw new Error("AIService requires at least one provider");
     }
-    this.providers = providers
-    this.logger.info('AIService initialized', {
+    this.providers = providers;
+    this.logger.info("AIService initialized", {
       providerCount: providers.length,
-      providers: providers.map(p => p.name),
-    })
+      providers: providers.map((p) => p.name),
+    });
   }
 
   /**
@@ -27,9 +33,9 @@ export class AIService {
    */
   static initialize(providers: AIProvider[]): AIService {
     if (!AIService.instance) {
-      AIService.instance = new AIService(providers)
+      AIService.instance = new AIService(providers);
     }
-    return AIService.instance
+    return AIService.instance;
   }
 
   /**
@@ -37,30 +43,30 @@ export class AIService {
    */
   static getInstance(): AIService {
     if (!AIService.instance) {
-      throw new Error('AIService not initialized. Register ai-plugin first.')
+      throw new Error("AIService not initialized. Register ai-plugin first.");
     }
-    return AIService.instance
+    return AIService.instance;
   }
 
   /**
    * Get primary provider (first in array)
    */
   private getPrimaryProvider(): AIProvider {
-    return this.providers[0]
+    return this.providers[0];
   }
 
   /**
    * Get provider by name
    */
   getProvider(name: string): AIProvider | undefined {
-    return this.providers.find(p => p.name === name)
+    return this.providers.find((p) => p.name === name);
   }
 
   /**
    * Get all provider names
    */
   getProviderNames(): string[] {
-    return this.providers.map(p => p.name)
+    return this.providers.map((p) => p.name);
   }
 
   /**
@@ -70,17 +76,21 @@ export class AIService {
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): Promise<AIResponse> {
-    const provider = this.getPrimaryProvider()
+    const provider = this.getPrimaryProvider();
 
     try {
-      return await provider.complete(messages, options)
+      return await provider.complete(messages, options);
     } catch (error) {
-      this.logger.error('AI completion failed at service level', error as Error, {
-        provider: provider.name,
-        model: options.model || 'default',
-        messageCount: messages.length,
-      })
-      throw error
+      this.logger.error(
+        "AI completion failed at service level",
+        error as Error,
+        {
+          provider: provider.name,
+          model: options.model || "default",
+          messageCount: messages.length,
+        }
+      );
+      throw error;
     }
   }
 
@@ -91,17 +101,17 @@ export class AIService {
     messages: AIMessage[],
     options: AICompletionOptions = {}
   ): AsyncGenerator<StreamChunk> {
-    const provider = this.getPrimaryProvider()
+    const provider = this.getPrimaryProvider();
 
     try {
-      yield* provider.stream(messages, options)
+      yield* provider.stream(messages, options);
     } catch (error) {
-      this.logger.error('AI stream failed at service level', error as Error, {
+      this.logger.error("AI stream failed at service level", error as Error, {
         provider: provider.name,
-        model: options.model || 'default',
+        model: options.model || "default",
         messageCount: messages.length,
-      })
-      throw error
+      });
+      throw error;
     }
   }
 }

@@ -2,8 +2,8 @@
  * Export all validation schemas
  */
 export {
-  paramSchemas,
   bodySchemas,
+  paramSchemas,
   querySchemas,
   responseSchemas,
   routeSchemas,

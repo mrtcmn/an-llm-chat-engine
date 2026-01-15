@@ -1,9 +1,9 @@
+import { errorHandler, notFoundHandler } from "@middleware";
 import type { FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
-import { chatsRoutes, completionsRoutes } from "./chats/index";
 import { authRoutes } from "./auth.routes";
+import { chatsRoutes, completionsRoutes } from "./chats/index";
 import { healthRoutes } from "./health.routes";
-import { errorHandler, notFoundHandler } from "@middleware";
 
 /**
  * Main router plugin
@@ -26,16 +26,19 @@ async function routerPluginCallback(fastify: FastifyInstance): Promise<void> {
   fastify.register(healthRoutes, { prefix: "/health" });
 
   // API routes
-  fastify.register(async (api) => {
-    // Register auth routes at /api/auth
-    api.register(authRoutes, { prefix: "/auth" });
+  fastify.register(
+    async (api) => {
+      // Register auth routes at /api/auth
+      api.register(authRoutes, { prefix: "/auth" });
 
-    // Register chat routes at /api/chats
-    api.register(chatsRoutes, { prefix: "/chats" });
+      // Register chat routes at /api/chats
+      api.register(chatsRoutes, { prefix: "/chats" });
 
-    // Register completion routes at /api/chats (they add /:chatId/completion)
-    api.register(completionsRoutes, { prefix: "/chats" });
-  }, { prefix: "/api" });
+      // Register completion routes at /api/chats (they add /:chatId/completion)
+      api.register(completionsRoutes, { prefix: "/chats" });
+    },
+    { prefix: "/api" }
+  );
 
   fastify.log.info("Router plugin registered");
 }
@@ -45,7 +48,7 @@ export const routerPlugin = fp(routerPluginCallback, {
   dependencies: ["jwt-plugin", "database-plugin"],
 });
 
+export { authRoutes } from "./auth.routes.js";
 // Re-export individual routes for custom registration if needed
 export { chatsRoutes, completionsRoutes } from "./chats/index.js";
-export { authRoutes } from "./auth.routes.js";
 export { healthRoutes } from "./health.routes.js";

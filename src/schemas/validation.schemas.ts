@@ -27,7 +27,7 @@ export const bodySchemas = {
     type: "object" as const,
     required: ["message"],
     properties: {
-      message: { type: "string", minLength: 1, maxLength: 32000 },
+      message: { type: "string", minLength: 1, maxLength: 32_000 },
     },
   },
 } as const;
@@ -39,7 +39,12 @@ export const querySchemas = {
   chatList: {
     type: "object" as const,
     properties: {
-      limit: { type: "integer", minimum: PAGINATION.MIN_LIMIT, maximum: PAGINATION.MAX_LIMIT, default: PAGINATION.DEFAULT_LIMIT },
+      limit: {
+        type: "integer",
+        minimum: PAGINATION.MIN_LIMIT,
+        maximum: PAGINATION.MAX_LIMIT,
+        default: PAGINATION.DEFAULT_LIMIT,
+      },
       page: { type: "integer", minimum: 1 },
     },
   },
@@ -101,7 +106,8 @@ export const routeSchemas = {
   listChats: {
     tags: ["Chats"],
     summary: "List all chats",
-    description: "Returns a paginated list of chats for the authenticated user. Use either 'page' or 'offset' for pagination.",
+    description:
+      "Returns a paginated list of chats for the authenticated user. Use either 'page' or 'offset' for pagination.",
     querystring: querySchemas.chatList,
     response: {
       200: {
@@ -151,7 +157,8 @@ export const routeSchemas = {
   createCompletion: {
     tags: ["Completions"],
     summary: "Create a completion",
-    description: "Sends a message to the LLM and returns the assistant's response. Supports streaming.",
+    description:
+      "Sends a message to the LLM and returns the assistant's response. Supports streaming.",
     params: paramSchemas.chatId,
     body: bodySchemas.completionMessage,
     response: {

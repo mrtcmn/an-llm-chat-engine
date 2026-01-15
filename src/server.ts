@@ -1,16 +1,16 @@
-import Fastify from "fastify";
-import { randomUUID } from "crypto";
 import { configPlugin } from "@config";
-import { loggerPlugin } from "@services/logger";
-import { appCheckPlugin } from "@services/app-check";
-import { databasePlugin } from "@services/database";
-import { aiPlugin } from "@services/ai";
-import { chatServicePlugin } from "@services/chat";
-import { jwtPlugin } from "@services/auth";
-import { swaggerPlugin } from "@services/docs";
-import { routerPlugin } from "@routes";
 import { REQUEST } from "@config/constants";
-import { requestContextMiddleware, rateLimitMiddleware } from "@middleware";
+import { rateLimitMiddleware, requestContextMiddleware } from "@middleware";
+import { routerPlugin } from "@routes";
+import { aiPlugin } from "@services/ai";
+import { appCheckPlugin } from "@services/app-check";
+import { jwtPlugin } from "@services/auth";
+import { chatServicePlugin } from "@services/chat";
+import { databasePlugin } from "@services/database";
+import { swaggerPlugin } from "@services/docs";
+import { loggerPlugin } from "@services/logger";
+import { randomUUID } from "crypto";
+import Fastify from "fastify";
 
 const fastify = Fastify({
   genReqId: (req) => {
@@ -50,8 +50,8 @@ fastify.register(routerPlugin);
 
 const start = async () => {
   try {
-    const port = parseInt(process.env.PORT || "3000", 10);
-    await fastify.listen({ port: port, host: "0.0.0.0" });
+    const port = Number.parseInt(process.env.PORT || "3000", 10);
+    await fastify.listen({ port, host: "0.0.0.0" });
     fastify.log.info(`Server listening on port ${port}`);
   } catch (err) {
     fastify.log.error({ err }, "Error starting server");

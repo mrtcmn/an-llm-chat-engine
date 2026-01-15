@@ -1,1 +1,1 @@
-export { OpenAIProvider } from './openai.strategy'
+export { OpenAIProvider } from "./openai.strategy";

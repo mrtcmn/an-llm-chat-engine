@@ -1,9 +1,9 @@
-import { EnvConfig, validateEnv } from "./env.config";
-import { FeatureFlags } from "./feature-flags.schema";
-import { watch, FSWatcher } from "fs";
-import { resolve } from "path";
-import { config as reloadDotenv } from "dotenv";
 import { LoggerService } from "@utils/logger";
+import { config as reloadDotenv } from "dotenv";
+import { type FSWatcher, watch } from "fs";
+import { resolve } from "path";
+import { type EnvConfig, validateEnv } from "./env.config";
+import type { FeatureFlags } from "./feature-flags.schema";
 
 export class ConfigService {
   private static instance: ConfigService;

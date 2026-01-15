@@ -1,11 +1,11 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
-  registerMiddlewareChain,
   authMiddleware,
   clientDetectionMiddleware,
   loggingMiddleware,
+  registerMiddlewareChain,
   routeSchemas,
 } from "@middleware";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 /**
  * Request types for chat routes
@@ -47,7 +47,7 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
       const { limit, page } = req.query;
 
       return fastify.chatService.listChats(userId, { limit, page });
-    },
+    }
   );
 
   // GET /chats/:chatId/history - Get message history
@@ -58,7 +58,7 @@ export async function chatsRoutes(fastify: FastifyInstance): Promise<void> {
       const { chatId } = req.params;
       const userId = req.user!.sub;
       return fastify.chatService.getChatHistory(chatId, userId);
-    },
+    }
   );
 
   fastify.log.info("Chat routes registered");

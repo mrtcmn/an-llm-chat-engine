@@ -1,4 +1,4 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 /**
  * Request logging middleware
@@ -6,9 +6,8 @@ import type { FastifyRequest, FastifyReply } from "fastify";
  */
 export async function loggingMiddleware(
   req: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply
 ): Promise<void> {
-
   req.logger.debug("[Middleware] Logging: request received", {
     method: req.method,
     url: req.url,

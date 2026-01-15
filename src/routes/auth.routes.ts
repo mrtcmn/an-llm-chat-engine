@@ -1,9 +1,9 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
-  registerMiddlewareChain,
   clientDetectionMiddleware,
   loggingMiddleware,
+  registerMiddlewareChain,
 } from "@middleware";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 /**
  * Auth routes plugin

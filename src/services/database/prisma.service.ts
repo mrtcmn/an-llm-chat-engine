@@ -1,15 +1,15 @@
+import type { ConfigService } from "@config";
 import { PrismaClient } from "@generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import pg from "pg";
-import type { DatabaseStrategy, PoolStats } from "./database.strategy";
-import type { ConfigService } from "@config";
 import { LoggerService } from "@utils/logger";
+import pg from "pg";
+import type { DatabaseStrategy } from "./database.strategy";
 
 export class PrismaService implements DatabaseStrategy {
   public client: PrismaClient;
   private pool: pg.Pool;
   private config: ConfigService;
-  private logger = LoggerService.getInstance().forService('PrismaService');
+  private logger = LoggerService.getInstance().forService("PrismaService");
 
   constructor(config: ConfigService) {
     this.config = config;
@@ -27,9 +27,7 @@ export class PrismaService implements DatabaseStrategy {
 
     this.client = new PrismaClient({
       adapter,
-      log: this.config.isDevelopment()
-        ? ["error", "warn"]
-        : ["error", "warn"],
+      log: this.config.isDevelopment() ? ["error", "warn"] : ["error", "warn"],
     });
   }
 
@@ -40,10 +38,10 @@ export class PrismaService implements DatabaseStrategy {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await this.client.$connect();
-        this.logger.info('Connected successfully', { attempt: attempt + 1 });
+        this.logger.info("Connected successfully", { attempt: attempt + 1 });
         return;
       } catch (error) {
-        this.logger.error('Connection attempt failed', error as Error, {
+        this.logger.error("Connection attempt failed", error as Error, {
           attempt: attempt + 1,
           maxRetries,
         });
@@ -51,12 +49,15 @@ export class PrismaService implements DatabaseStrategy {
         if (attempt === maxRetries - 1) {
           throw new Error(
             `Failed to connect to database after ${maxRetries} attempts. ` +
-            `Last error: ${error instanceof Error ? error.message : String(error)}`,
+              `Last error: ${error instanceof Error ? error.message : String(error)}`
           );
         }
 
-        const delay = baseDelay * Math.pow(2, attempt);
-        this.logger.info('Retrying connection', { delay, attempt: attempt + 1 });
+        const delay = baseDelay * 2 ** attempt;
+        this.logger.info("Retrying connection", {
+          delay,
+          attempt: attempt + 1,
+        });
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -69,14 +70,14 @@ export class PrismaService implements DatabaseStrategy {
   async disconnect(): Promise<void> {
     await this.client.$disconnect();
     await this.pool.end();
-    this.logger.info('Database disconnected');
+    this.logger.info("Database disconnected");
   }
 
   async reconnect(): Promise<void> {
-    this.logger.info('Initiating reconnection');
+    this.logger.info("Initiating reconnection");
     await this.disconnect();
     await this.connectWithRetry();
-    this.logger.info('Reconnection successful');
+    this.logger.info("Reconnection successful");
   }
 
   async healthCheck(): Promise<boolean> {
@@ -107,8 +108,8 @@ export class PrismaService implements DatabaseStrategy {
         | "$transaction"
         | "$use"
         | "$extends"
-      >,
-    ) => Promise<T>,
+      >
+    ) => Promise<T>
   ): Promise<T> {
     return this.client.$transaction(fn);
   }
