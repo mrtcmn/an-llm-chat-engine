@@ -29,7 +29,8 @@ export class ResponseStrategyPlugin {
       await this.messageRepo.create({
         chatId,
         role: 'assistant',
-        content: streamResult.content
+        content: streamResult.content,
+        metadata: streamResult.toolCalls ? { toolCalls: streamResult.toolCalls } : undefined
       })
       
       return reply
@@ -40,7 +41,8 @@ export class ResponseStrategyPlugin {
     await this.messageRepo.create({
       chatId,
       role: 'assistant',
-      content: response.content
+      content: response.content,
+      metadata: response.toolCalls ? { toolCalls: response.toolCalls } : undefined
     })
 
     return response

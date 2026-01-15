@@ -76,6 +76,17 @@ export const responseSchemas = {
       chatId: { type: "string" },
       role: { type: "string", enum: ["user", "assistant", "system"] },
       content: { type: "string" },
+      toolCalls: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            arguments: {},
+            result: {},
+          },
+        },
+      },
       createdAt: { type: "string", format: "date-time" },
     },
   },
@@ -128,6 +139,7 @@ export const routeSchemas = {
         properties: {
           chatId: { type: "string", minLength: 5, maxLength: 64 },
           messages: { type: "array", items: responseSchemas.message },
+          isFullHistory: { type: "boolean" },
         },
       },
       401: responseSchemas.error,

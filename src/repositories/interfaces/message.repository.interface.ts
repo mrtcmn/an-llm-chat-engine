@@ -6,5 +6,5 @@ export interface FindByChatIdOptions {
 
 export interface IMessageRepository {
   findByChatId(chatId: string, options?: FindByChatIdOptions): Promise<Message[]>
-  create(data: { chatId: string; role: string; content: string }): Promise<Message>
+  create(data: { chatId: string; role: string; content: string; metadata?: any }): Promise<Message>
 }

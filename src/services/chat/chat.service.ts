@@ -64,9 +64,22 @@ export class ChatService {
 
     const fullHistory = this.config.getFeatureFlag('chatHistoryEnabled')
 
-    const messages = fullHistory
+    const dbMessages = fullHistory
       ? await this.messageRepo.findByChatId(chatId)
       : await this.messageRepo.findByChatId(chatId, { limit: 10 })
+
+    // Transform messages: extract toolCalls from metadata
+    const messages = dbMessages.map(msg => {
+      const metadata = msg.metadata as { toolCalls?: any[] } | null
+      return {
+        id: msg.id,
+        chatId: msg.chatId,
+        role: msg.role,
+        content: msg.content,
+        ...(metadata?.toolCalls && { toolCalls: metadata.toolCalls }),
+        createdAt: msg.createdAt.toISOString()
+      }
+    })
 
     return {
       chatId,

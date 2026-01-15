@@ -19,6 +19,7 @@ export class MessagePrismaRepositoryImpl implements IMessageRepository {
     chatId: string
     role: string
     content: string
+    metadata?: any
   }): Promise<Message> {
     return this.prisma.message.create({ data })
   }

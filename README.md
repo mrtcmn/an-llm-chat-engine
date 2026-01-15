@@ -118,9 +118,22 @@ Key environment variables (see `.env.example` for full list):
 
 ## API Documentation
 
-Once the server is running, visit:
-- Swagger UI: `http://localhost:3000/documentation`
-- API Reference: Auto-generated with Scalar
+Once the server is running, navigate to:
+
+**`http://localhost:3000/docs`**
+
+This provides a Swagger/OpenAPI interface with Scalar UI for better developer experience.
+
+#### Known Issues
+
+- **SSE Routes**: When testing Server-Sent Events (SSE) endpoints in Scalar UI, the second trigger may not display in the UI. To verify SSE responses, check the Network tab in browser DevTools
+
+### Getting Started with API
+
+1. **Get JWT Token**: Visit `/api/auth/jwt/test` to obtain a test JWT token
+2. **Authenticate**: Use the token in the Authorization header for protected routes
+3. **Test Endpoints**: Try out all available endpoints directly from the docs
+
 
 ## Tech Stack
 

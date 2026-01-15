@@ -5,7 +5,6 @@ import {
   clientDetectionMiddleware,
   loggingMiddleware,
   routeSchemas,
-  AppError,
 } from "@middleware";
 
 /**
