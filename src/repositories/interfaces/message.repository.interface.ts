@@ -1,4 +1,4 @@
-import type { Message } from "@generated/prisma/client";
+import type { Message } from "./models";
 
 export interface FindByChatIdOptions {
   limit?: number;
