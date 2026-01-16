@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@generated/prisma/client";
-import type { Chat } from "../../interfaces/models";
 import type { IChatRepository } from "../../interfaces";
+import type { Chat } from "../../interfaces/models";
 
 export class ChatPrismaRepositoryImpl implements IChatRepository {
   constructor(private prisma: PrismaClient) {}

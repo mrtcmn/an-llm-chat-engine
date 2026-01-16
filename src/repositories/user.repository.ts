@@ -1,8 +1,8 @@
-import type { User } from "./interfaces/models";
 import type { DatabaseService } from "../services/database/database.service";
 import type { PrismaService } from "../services/database/prisma.service";
 import { UserPrismaRepositoryImpl } from "./implementations/prisma/user.prisma.repository";
 import type { IUserRepository } from "./interfaces";
+import type { User } from "./interfaces/models";
 
 export class UserRepository implements IUserRepository {
   private impl: IUserRepository;

@@ -47,14 +47,14 @@ export class CompletionService {
       content: userMessage,
     });
 
-    const history = await this.messageRepo.findByChatId(chatId);
+    const history = await this.messageRepo.findByChatId(chatId, { limit: 10 });
 
     const messages: AIMessage[] = [
       {
         role: "system",
         content: "You are a helpful AI assistant. Be concise and helpful.",
       },
-      ...history.map((msg) => ({
+      ...history.reverse().map((msg) => ({
         role: msg.role as "user" | "assistant",
         content: msg.content,
       })),

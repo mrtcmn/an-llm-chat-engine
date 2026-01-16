@@ -69,7 +69,7 @@ export class ChatService {
       : await this.messageRepo.findByChatId(chatId, { limit: 10 });
 
     // Transform messages: extract toolCalls from metadata
-    const messages = dbMessages.map((msg) => {
+    const messages = dbMessages.reverse().map((msg) => {
       const metadata = msg.metadata as { toolCalls?: any[] } | null;
       return {
         id: msg.id,

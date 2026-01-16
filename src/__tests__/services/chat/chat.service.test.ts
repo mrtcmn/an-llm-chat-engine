@@ -113,7 +113,10 @@ describe("ChatService", () => {
       expect(result.chatId).toBe(mockChat.id);
       expect(result.messages).toEqual(
         mockMessages.map((msg) => ({
-          ...msg,
+          id: msg.id,
+          chatId: msg.chatId,
+          role: msg.role,
+          content: msg.content,
           createdAt: msg.createdAt.toISOString(),
         }))
       );

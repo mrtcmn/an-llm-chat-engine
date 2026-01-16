@@ -1,8 +1,8 @@
-import type { Message } from "./interfaces/models";
 import type { DatabaseService } from "../services/database/database.service";
 import type { PrismaService } from "../services/database/prisma.service";
 import { MessagePrismaRepositoryImpl } from "./implementations/prisma/message.prisma.repository";
 import type { FindByChatIdOptions, IMessageRepository } from "./interfaces";
+import type { Message } from "./interfaces/models";
 
 export class MessageRepository implements IMessageRepository {
   private impl: IMessageRepository;

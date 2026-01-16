@@ -1,5 +1,5 @@
-import type { User } from "./user.model";
 import type { Message } from "./message.model";
+import type { User } from "./user.model";
 
 /**
  * Chat domain model representing a chat session in the business layer.
