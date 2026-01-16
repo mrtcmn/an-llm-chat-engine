@@ -1,4 +1,4 @@
-import type { User } from "@generated/prisma/client";
+import type { User } from "./interfaces/models";
 import type { DatabaseService } from "../services/database/database.service";
 import type { PrismaService } from "../services/database/prisma.service";
 import { UserPrismaRepositoryImpl } from "./implementations/prisma/user.prisma.repository";

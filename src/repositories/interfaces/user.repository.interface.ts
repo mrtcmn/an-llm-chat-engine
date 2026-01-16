@@ -1,4 +1,4 @@
-import type { User } from "@generated/prisma/client";
+import type { User } from "./models";
 
 export interface IUserRepository {
   findById(userId: string): Promise<User | null>;

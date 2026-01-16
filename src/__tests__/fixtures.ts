@@ -24,6 +24,7 @@ export const mockChat = {
   userId: mockUser.id,
   createdAt: new Date("2024-01-01T10:00:00.000Z"),
   updatedAt: new Date("2024-01-01T10:00:00.000Z"),
+  deletedAt: null,
 };
 
 export const mockChat2 = {
@@ -32,6 +33,7 @@ export const mockChat2 = {
   userId: mockUser.id,
   createdAt: new Date("2024-01-02T10:00:00.000Z"),
   updatedAt: new Date("2024-01-02T10:00:00.000Z"),
+  deletedAt: null,
 };
 
 export const mockChatOwnedByUser2 = {
@@ -40,6 +42,7 @@ export const mockChatOwnedByUser2 = {
   userId: mockUser2.id,
   createdAt: new Date("2024-01-03T10:00:00.000Z"),
   updatedAt: new Date("2024-01-03T10:00:00.000Z"),
+  deletedAt: null,
 };
 
 // Message fixtures
@@ -48,7 +51,10 @@ export const mockUserMessage = {
   chatId: mockChat.id,
   role: "user",
   content: "Hello, how can you help me today?",
+  metadata: null,
   createdAt: new Date("2024-01-01T10:01:00.000Z"),
+  updatedAt: new Date("2024-01-01T10:01:00.000Z"),
+  deletedAt: null,
 };
 
 export const mockAssistantMessage = {
@@ -56,7 +62,10 @@ export const mockAssistantMessage = {
   chatId: mockChat.id,
   role: "assistant",
   content: "Hello! I'm here to help. What would you like to know?",
+  metadata: null,
   createdAt: new Date("2024-01-01T10:01:30.000Z"),
+  updatedAt: new Date("2024-01-01T10:01:30.000Z"),
+  deletedAt: null,
 };
 
 export const mockUserMessage2 = {
@@ -64,7 +73,10 @@ export const mockUserMessage2 = {
   chatId: mockChat.id,
   role: "user",
   content: "Tell me about TypeScript.",
+  metadata: null,
   createdAt: new Date("2024-01-01T10:02:00.000Z"),
+  updatedAt: new Date("2024-01-01T10:02:00.000Z"),
+  deletedAt: null,
 };
 
 export const mockAssistantMessage2 = {
@@ -73,7 +85,10 @@ export const mockAssistantMessage2 = {
   role: "assistant",
   content:
     "TypeScript is a strongly typed programming language that builds on JavaScript.",
+  metadata: null,
   createdAt: new Date("2024-01-01T10:02:30.000Z"),
+  updatedAt: new Date("2024-01-01T10:02:30.000Z"),
+  deletedAt: null,
 };
 
 export const mockMessages = [

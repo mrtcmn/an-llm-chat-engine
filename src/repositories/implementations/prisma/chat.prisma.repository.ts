@@ -1,4 +1,5 @@
-import type { Chat, PrismaClient } from "@generated/prisma/client";
+import type { PrismaClient } from "@generated/prisma/client";
+import type { Chat } from "../../interfaces/models";
 import type { IChatRepository } from "../../interfaces";
 
 export class ChatPrismaRepositoryImpl implements IChatRepository {
