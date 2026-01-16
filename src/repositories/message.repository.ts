@@ -1,4 +1,4 @@
-import type { Message } from "@generated/prisma/client";
+import type { Message } from "./interfaces/models";
 import type { DatabaseService } from "../services/database/database.service";
 import type { PrismaService } from "../services/database/prisma.service";
 import { MessagePrismaRepositoryImpl } from "./implementations/prisma/message.prisma.repository";
