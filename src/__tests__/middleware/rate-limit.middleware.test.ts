@@ -59,40 +59,33 @@ describe("rateLimitMiddleware", () => {
       mockReq.user = undefined;
     });
 
-    it("should allow requests under IP limit", async () => {
+    it("should skip rate limiting for unauthenticated requests", async () => {
       // Use unique IP to avoid cross-test contamination
       mockReq.ip = `192.168.1.${Math.floor(Math.random() * 255)}`;
 
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
-      expect(mockReply.header).toHaveBeenCalledWith("X-RateLimit-Limit", 500);
-      expect(mockReply.header).toHaveBeenCalledWith(
-        "X-RateLimit-Remaining",
-        expect.any(Number)
-      );
-      expect(mockReply.header).toHaveBeenCalledWith(
-        "X-RateLimit-Reset",
-        expect.any(Number)
-      );
+      // Should not set headers for unauthenticated requests
+      expect(mockReply.header).not.toHaveBeenCalled();
     });
 
-    it("should log debug message for passed rate limit check", async () => {
+    it("should log debug message for skipped rate limit check", async () => {
       mockReq.ip = `10.0.0.${Math.floor(Math.random() * 255)}`;
 
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
       expect(mockReq.logger.debug).toHaveBeenCalledWith(
-        "[Middleware] RateLimit: rate limit check passed (unauthenticated)",
-        expect.objectContaining({ ip: mockReq.ip })
+        "[Middleware] RateLimit: skipping user/route check (not authenticated)",
+        expect.objectContaining({ route: expect.any(String) })
       );
     });
 
-    it("should set rate limit headers for unauthenticated requests", async () => {
+    it("should not set rate limit headers for unauthenticated requests", async () => {
       mockReq.ip = `172.16.0.${Math.floor(Math.random() * 255)}`;
 
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
-      expect(mockReply.header).toHaveBeenCalledWith("X-RateLimit-Limit", 500);
+      expect(mockReply.header).not.toHaveBeenCalled();
     });
   });
 
@@ -120,11 +113,12 @@ describe("rateLimitMiddleware", () => {
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
       expect(mockReq.logger.debug).toHaveBeenCalledWith(
-        "[Middleware] RateLimit: rate limit check passed",
+        "[Middleware] RateLimit: user/route check passed",
         expect.objectContaining({
           userId: mockReq.user?.sub,
           route: expect.any(String),
           remaining: expect.any(Number),
+          limit: expect.any(Number),
         })
       );
     });
@@ -135,7 +129,7 @@ describe("rateLimitMiddleware", () => {
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
       expect(mockReq.logger.debug).toHaveBeenCalledWith(
-        "[Middleware] RateLimit: rate limit check passed",
+        "[Middleware] RateLimit: user/route check passed",
         expect.objectContaining({
           route: "GET:/api/chats/:chatId",
         })
@@ -149,7 +143,7 @@ describe("rateLimitMiddleware", () => {
       await rateLimitMiddleware(mockReq as any, mockReply as any);
 
       expect(mockReq.logger.debug).toHaveBeenCalledWith(
-        "[Middleware] RateLimit: rate limit check passed",
+        "[Middleware] RateLimit: user/route check passed",
         expect.objectContaining({
           route: "GET:/api/chats/123",
         })
@@ -158,35 +152,27 @@ describe("rateLimitMiddleware", () => {
   });
 
   describe("rate limit exceeded scenarios", () => {
-    it("should throw AppError when IP limit exceeded", async () => {
-      // Use same IP for many requests to exceed limit
+    it("should not throw for unauthenticated requests (IP limits handled elsewhere)", async () => {
+      // rateLimitMiddleware doesn't handle IP limits for unauthenticated users
+      // IP limits are handled by ipRateLimitMiddleware
       const ip = "1.2.3.4";
       mockReq.ip = ip;
       mockReq.user = undefined;
 
-      // Make 500 requests first (should all pass)
-      for (let i = 0; i < 500; i++) {
-        try {
-          await rateLimitMiddleware(mockReq as any, mockReply as any);
-        } catch {
-          // Should not throw within limit
-          expect.fail("Should not throw before limit is reached");
-        }
-      }
-
-      // 501st request should fail
+      // Should not throw - middleware returns early for unauthenticated users
       await expect(
         rateLimitMiddleware(mockReq as any, mockReply as any)
-      ).rejects.toThrow("Too many requests from this IP");
+      ).resolves.not.toThrow();
     });
 
-    it("should throw AppError with correct status for rate limit exceeded", async () => {
-      const ip = "5.6.7.8";
-      mockReq.ip = ip;
-      mockReq.user = undefined;
+    it("should throw AppError when route limit exceeded for authenticated user", async () => {
+      const userId = `route-limit-user-${Date.now()}`;
+      mockReq.user = { sub: userId, email: "test@test.com", role: "user" };
+      mockReq.ip = `5.6.7.${Math.floor(Math.random() * 255)}`;
+      mockReq.routeOptions = { url: "/api/test-route" };
 
-      // Exhaust IP limit
-      for (let i = 0; i < 500; i++) {
+      // Exhaust route limit (20 requests)
+      for (let i = 0; i < 20; i++) {
         await rateLimitMiddleware(mockReq as any, mockReply as any);
       }
 
@@ -199,13 +185,14 @@ describe("rateLimitMiddleware", () => {
       }
     });
 
-    it("should log warning when IP rate limit exceeded", async () => {
-      const ip = "9.10.11.12";
-      mockReq.ip = ip;
-      mockReq.user = undefined;
+    it("should log warning when route rate limit exceeded", async () => {
+      const userId = `route-warn-user-${Date.now()}`;
+      mockReq.user = { sub: userId, email: "test@test.com", role: "user" };
+      mockReq.ip = `9.10.11.${Math.floor(Math.random() * 255)}`;
+      mockReq.routeOptions = { url: "/api/warn-route" };
 
-      // Exhaust IP limit
-      for (let i = 0; i < 500; i++) {
+      // Exhaust route limit (20 requests)
+      for (let i = 0; i < 20; i++) {
         await rateLimitMiddleware(mockReq as any, mockReply as any);
       }
 
@@ -216,8 +203,11 @@ describe("rateLimitMiddleware", () => {
       }
 
       expect(mockReq.logger.warn).toHaveBeenCalledWith(
-        "[Middleware] RateLimit: IP rate limit exceeded",
-        { ip }
+        "[Middleware] RateLimit: route rate limit exceeded",
+        expect.objectContaining({
+          userId,
+          route: expect.any(String),
+        })
       );
     });
   });
